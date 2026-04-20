@@ -1,0 +1,334 @@
+{
+  "apiVersion": "1.0.0",
+  "title": "Cogniva Backend API",
+  "description": "Production-ready API for AI Learning Platform",
+  "baseUrl": "http://localhost:8000",
+  "authentication": "Firebase JWT (ID Token)",
+  "endpoints": [
+    {
+      "name": "Health Check",
+      "method": "GET",
+      "path": "/health",
+      "auth": false,
+      "description": "Check if backend is running",
+      "response": {
+        "success": true,
+        "message": "Cogniva Backend is running",
+        "timestamp": "2024-01-15T10:30:00Z"
+      }
+    },
+    {
+      "name": "Register User",
+      "method": "POST",
+      "path": "/api/auth/register",
+      "auth": true,
+      "description": "Register new user (creates user in MongoDB)",
+      "response": {
+        "success": true,
+        "message": "User registered successfully",
+        "data": {
+          "id": "507f1f77bcf86cd799439011",
+          "firebase_uid": "abc123...",
+          "email": "user@example.com",
+          "full_name": "John Doe",
+          "role": "student"
+        }
+      }
+    },
+    {
+      "name": "Get Current User",
+      "method": "GET",
+      "path": "/api/auth/me",
+      "auth": true,
+      "description": "Get authenticated user profile",
+      "response": {
+        "success": true,
+        "message": "User profile retrieved",
+        "data": {
+          "id": "507f1f77bcf86cd799439011",
+          "email": "user@example.com",
+          "full_name": "John Doe",
+          "role": "student",
+          "avatar_url": null,
+          "bio": "",
+          "created_at": "2024-01-15T10:30:00Z"
+        }
+      }
+    },
+    {
+      "name": "Update User Profile",
+      "method": "PUT",
+      "path": "/api/auth/profile",
+      "auth": true,
+      "description": "Update user profile information",
+      "body": {
+        "full_name": "Jane Doe",
+        "bio": "AI enthusiast",
+        "avatar_url": "https://example.com/avatar.jpg"
+      },
+      "response": {
+        "success": true,
+        "message": "Profile updated successfully",
+        "data": {
+          "id": "507f1f77bcf86cd799439011",
+          "email": "user@example.com",
+          "full_name": "Jane Doe",
+          "role": "student",
+          "avatar_url": "https://example.com/avatar.jpg",
+          "bio": "AI enthusiast"
+        }
+      }
+    },
+    {
+      "name": "Send Message to AI Tutor",
+      "method": "POST",
+      "path": "/api/tutor/chat",
+      "auth": true,
+      "description": "Send a message to the AI tutor",
+      "body": {
+        "message": "Explain neural networks",
+        "conversation_id": "optional-conversation-id"
+      },
+      "response": {
+        "success": true,
+        "message": "Message processed successfully",
+        "data": {
+          "id": "chat_507f...",
+          "user_id": "507f1f77bcf86cd799439011",
+          "message": "Explain neural networks",
+          "response": "Neural networks are computational models inspired by biological neurons...",
+          "model": "phi",
+          "created_at": "2024-01-15T10:30:00Z"
+        }
+      }
+    },
+    {
+      "name": "Get Chat History",
+      "method": "GET",
+      "path": "/api/tutor/history",
+      "auth": true,
+      "query": {
+        "limit": 20,
+        "skip": 0
+      },
+      "description": "Get user's chat history with AI tutor",
+      "response": {
+        "success": true,
+        "message": "Chat history retrieved",
+        "data": [],
+        "pagination": {
+          "total": 45,
+          "limit": 20,
+          "skip": 0,
+          "hasMore": true
+        }
+      }
+    },
+    {
+      "name": "Check AI Tutor Health",
+      "method": "GET",
+      "path": "/api/tutor/health",
+      "auth": true,
+      "description": "Check if Ollama AI service is running",
+      "response": {
+        "success": true,
+        "message": "AI Tutor service is healthy",
+        "data": {
+          "ollama_status": "connected",
+          "available_models": ["phi", "mistral"],
+          "current_model": "phi"
+        }
+      }
+    },
+    {
+      "name": "Get Chat Statistics",
+      "method": "GET",
+      "path": "/api/chat/stats",
+      "auth": true,
+      "description": "Get user's chat statistics",
+      "response": {
+        "success": true,
+        "message": "Chat statistics retrieved",
+        "data": {
+          "total_conversations": 42,
+          "recent_chats": []
+        }
+      }
+    },
+    {
+      "name": "Get Chat by ID",
+      "method": "GET",
+      "path": "/api/chat/:id",
+      "auth": true,
+      "description": "Get specific chat message",
+      "response": {
+        "success": true,
+        "message": "Chat retrieved",
+        "data": {
+          "_id": "507f...",
+          "message": "Explain neural networks",
+          "response": "...",
+          "created_at": "2024-01-15T10:30:00Z"
+        }
+      }
+    },
+    {
+      "name": "Delete Chat",
+      "method": "DELETE",
+      "path": "/api/chat/:id",
+      "auth": true,
+      "description": "Delete specific chat message",
+      "response": {
+        "success": true,
+        "message": "Chat deleted successfully"
+      }
+    },
+    {
+      "name": "Clear All Chats",
+      "method": "DELETE",
+      "path": "/api/chat",
+      "auth": true,
+      "description": "Delete all user's chat messages",
+      "response": {
+        "success": true,
+        "message": "All chats cleared",
+        "data": {
+          "deleted_count": 42
+        }
+      }
+    },
+    {
+      "name": "Create Course",
+      "method": "POST",
+      "path": "/api/course",
+      "auth": true,
+      "role": "faculty",
+      "description": "Create a new course (faculty only)",
+      "body": {
+        "title": "Introduction to AI",
+        "description": "Learn AI fundamentals from scratch",
+        "content": "Detailed course content...",
+        "level": "Beginner",
+        "duration_hours": 8,
+        "tags": ["AI", "Machine Learning", "Python"]
+      },
+      "response": {
+        "success": true,
+        "message": "Course created successfully",
+        "data": {
+          "id": "course_507f...",
+          "title": "Introduction to AI",
+          "faculty_id": "507f1f77bcf86cd799439011",
+          "faculty_name": "Prof. John Doe",
+          "level": "Beginner",
+          "duration_hours": 8,
+          "is_published": false,
+          "created_at": "2024-01-15T10:30:00Z"
+        }
+      }
+    },
+    {
+      "name": "Get All Courses",
+      "method": "GET",
+      "path": "/api/course",
+      "auth": true,
+      "query": {
+        "limit": 20,
+        "skip": 0,
+        "published": true,
+        "faculty_id": "optional"
+      },
+      "description": "Get all published courses",
+      "response": {
+        "success": true,
+        "message": "Courses retrieved",
+        "data": [],
+        "pagination": {
+          "total": 15,
+          "limit": 20,
+          "skip": 0,
+          "hasMore": false
+        }
+      }
+    },
+    {
+      "name": "Get Course by ID",
+      "method": "GET",
+      "path": "/api/course/:id",
+      "auth": true,
+      "description": "Get specific course details",
+      "response": {
+        "success": true,
+        "message": "Course retrieved",
+        "data": {
+          "id": "course_507f...",
+          "title": "Introduction to AI",
+          "description": "...",
+          "content": "...",
+          "faculty_name": "Prof. John Doe",
+          "level": "Beginner",
+          "duration_hours": 8,
+          "tags": ["AI", "ML"],
+          "is_published": true,
+          "rating": 4.8,
+          "created_at": "2024-01-15T10:30:00Z"
+        }
+      }
+    },
+    {
+      "name": "Update Course",
+      "method": "PUT",
+      "path": "/api/course/:id",
+      "auth": true,
+      "role": "faculty",
+      "description": "Update course (faculty owner only)",
+      "body": {
+        "title": "Advanced AI",
+        "description": "Advanced AI topics",
+        "is_published": true
+      },
+      "response": {
+        "success": true,
+        "message": "Course updated successfully",
+        "data": {}
+      }
+    },
+    {
+      "name": "Delete Course",
+      "method": "DELETE",
+      "path": "/api/course/:id",
+      "auth": true,
+      "role": "faculty",
+      "description": "Delete course (faculty owner only)",
+      "response": {
+        "success": true,
+        "message": "Course deleted successfully",
+        "data": {
+          "deleted_id": "course_507f..."
+        }
+      }
+    },
+    {
+      "name": "Get Faculty Courses",
+      "method": "GET",
+      "path": "/api/course/faculty/:faculty_id",
+      "auth": true,
+      "query": {
+        "limit": 20,
+        "skip": 0
+      },
+      "description": "Get all courses by a specific faculty",
+      "response": {
+        "success": true,
+        "message": "Faculty courses retrieved",
+        "data": [],
+        "pagination": {
+          "total": 5,
+          "limit": 20,
+          "skip": 0,
+          "hasMore": false
+        }
+      }
+    }
+  ]
+}
