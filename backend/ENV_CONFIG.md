@@ -139,7 +139,7 @@ PORT=8000
 HOST=0.0.0.0
 
 # MongoDB Atlas
-MONGODB_URI=mongodb+srv://cogniva_user:secure_password@cluster0.mongodb.net/cogniva?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/cogniva?retryWrites=true&w=majority
 
 # Firebase Production
 FIREBASE_PROJECT_ID=cogniva-prod-12345
