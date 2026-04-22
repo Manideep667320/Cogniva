@@ -6,6 +6,7 @@ import {
   getChatHistory,
   checkHealth,
   getRecommendations,
+  streamMessage,
 } from '../controllers/tutorController.js'
 import verifyToken from '../middlewares/auth.js'
 
@@ -31,5 +32,8 @@ router.get('/health', checkHealth)
 
 // GET /api/recommendations - Get adaptive learning recommendations
 router.get('/recommendations', getRecommendations)
+
+// POST /api/tutor/stream - Stream AI response via SSE
+router.post('/stream', streamMessage)
 
 export default router

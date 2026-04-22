@@ -374,3 +374,87 @@ export const getRecommendations = asyncHandler(async (req, res) => {
     data: recommendations,
   })
 })
+
+// POST /api/tutor/stream — SSE streaming AI response
+export const streamMessage = asyncHandler(async (req, res) => {
+  const { message, skill_id, skill_tree_id } = req.body
+  const userId = req.userDb._id
+
+  if (!message || message.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Message cannot be empty',
+    })
+  }
+
+  // Set SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  })
+
+  // Retrieve RAG context if skill tree provided
+  let retrievedContext = []
+  if (skill_tree_id) {
+    try {
+      const skillTree = await SkillTree.findOne({ _id: skill_tree_id, user_id: userId })
+      if (skillTree && skillTree.embedding_collection) {
+        const isChromaAvailable = await vectorService.isAvailable()
+        if (isChromaAvailable) {
+          const queryEmbedding = await embeddingService.generateEmbedding(message)
+          retrievedContext = await vectorService.queryRelevant(
+            skillTree.embedding_collection,
+            queryEmbedding,
+            3
+          )
+        }
+      }
+      if (retrievedContext.length === 0) {
+        const upload = await Upload.findOne({
+          skill_tree_id, user_id: userId, status: 'completed',
+        })
+        if (upload && upload.text_content) {
+          retrievedContext = [{ content: upload.text_content.substring(0, 3000) }]
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ RAG context for stream failed:', error.message)
+    }
+  }
+
+  // Stream the response
+  const onChunk = (text) => {
+    res.write(`data: ${JSON.stringify({ type: 'chunk', text })}\n\n`)
+  }
+
+  try {
+    let result
+    if (retrievedContext.length > 0) {
+      result = await OllamaService.generateWithContextStreaming(
+        message, retrievedContext, onChunk
+      )
+    } else {
+      result = await OllamaService.generateStreamingResponse(message, onChunk)
+    }
+
+    // Send completion event
+    res.write(`data: ${JSON.stringify({ type: 'done', model: result.model, tokens_used: result.tokens_used })}\n\n`)
+
+    // Save to chat history
+    await Chat.create({
+      user_id: userId,
+      message: message.trim(),
+      response: result.response,
+      model: result.model,
+      tokens_used: result.tokens_used,
+      conversation_id: null,
+    })
+  } catch (error) {
+    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`)
+  }
+
+  res.end()
+})
+

@@ -142,3 +142,19 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
+
+/* Weak node pulsing glow for skill tree */
+@keyframes weakPulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.15), 0 0 2px rgba(239, 68, 68, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.35), 0 0 6px rgba(239, 68, 68, 0.25);
+    }
+}
+
+/* Streaming cursor blink */
+@keyframes streamCursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}

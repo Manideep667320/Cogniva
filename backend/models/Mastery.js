@@ -22,6 +22,10 @@ const mistakeSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  response_time_ms: {
+    type: Number,
+    default: null,
+  },
   timestamp: {
     type: Date,
     default: Date.now,

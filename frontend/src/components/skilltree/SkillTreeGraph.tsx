@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -88,6 +88,8 @@ function getLayoutedElements(
 }
 
 export function SkillTreeGraph({ nodes: skillNodes, title, onNodeClick, className = '' }: SkillTreeGraphProps) {
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+
   // Calculate Stats
   const stats = useMemo(() => {
     const total = skillNodes.length
@@ -105,6 +107,33 @@ export function SkillTreeGraph({ nodes: skillNodes, title, onNodeClick, classNam
     return map
   }, [skillNodes])
 
+  // Ancestor tracking helper
+  const ancestorMap = useMemo(() => {
+    const map: Record<string, Set<string>> = {}
+    skillNodes.forEach(node => {
+      const ancestors = new Set<string>()
+      const stack = [...node.prerequisites]
+      while (stack.length > 0) {
+        const id = stack.pop()!
+        if (!ancestors.has(id)) {
+          ancestors.add(id)
+          const parent = skillNodes.find(n => n.id === id)
+          if (parent) stack.push(...parent.prerequisites)
+        }
+      }
+      map[node.id] = ancestors
+    })
+    return map
+  }, [skillNodes])
+
+  const selectedPathNodes = useMemo(() => {
+    if (!selectedNodeId) return new Set<string>()
+    const path = new Set<string>([selectedNodeId])
+    const ancestors = ancestorMap[selectedNodeId] || new Set()
+    ancestors.forEach(id => path.add(id))
+    return path
+  }, [selectedNodeId, ancestorMap])
+
   // Convert skill nodes to React Flow nodes
   const initialNodes: Node[] = useMemo(
     () =>
@@ -112,6 +141,11 @@ export function SkillTreeGraph({ nodes: skillNodes, title, onNodeClick, classNam
         const prerequisitesMet = node.prerequisites.every(
           (prereqId) => (masteryMap[prereqId] ?? 0) >= 50
         )
+        const isHighlighted = selectedNodeId ? selectedPathNodes.has(node.id) : true
+        const isDimmed = selectedNodeId && !selectedPathNodes.has(node.id)
+        const nodeMastery = node.mastery_data?.mastery_score ?? node.mastery ?? 0
+        const nodeInteractions = node.mastery_data?.interactions ?? 0
+        const isWeak = nodeMastery < 30 && nodeInteractions > 2 && prerequisitesMet
 
         return {
           id: node.id,
@@ -120,14 +154,17 @@ export function SkillTreeGraph({ nodes: skillNodes, title, onNodeClick, classNam
           data: {
             label: node.name,
             description: node.description,
-            mastery: node.mastery_data?.mastery_score ?? node.mastery ?? 0,
+            mastery: nodeMastery,
             prerequisites_met: prerequisitesMet,
-            interactions: node.mastery_data?.interactions ?? 0,
+            interactions: nodeInteractions,
             level: node.level,
+            isHighlighted,
+            isDimmed,
+            isWeak,
           },
         }
       }),
-    [skillNodes, masteryMap]
+    [skillNodes, masteryMap, selectedNodeId, selectedPathNodes]
   )
 
   // Build edges from prerequisites
@@ -140,23 +177,28 @@ export function SkillTreeGraph({ nodes: skillNodes, title, onNodeClick, classNam
             const prereqMastery = masteryMap[prereqId] ?? 0
             const isMastered = prereqMastery >= 80
             const isInProgress = prereqMastery >= 50
+            const isPathEdge = selectedPathNodes.has(node.id) && selectedPathNodes.has(prereqId)
             
             let strokeColor = '#475569' // Default/Locked
-            if (isMastered) strokeColor = '#10b981' // Emerald
-            else if (isInProgress) strokeColor = '#f59e0b' // Amber
-            else if (prereqMastery > 0) strokeColor = '#6366f1' // Indigo
+            if (selectedNodeId) {
+              strokeColor = isPathEdge ? '#6366f1' : '#1e293b' // Active pathway vs Hidden
+            } else {
+              if (isMastered) strokeColor = '#10b981' // Emerald
+              else if (isInProgress) strokeColor = '#f59e0b' // Amber
+              else if (prereqMastery > 0) strokeColor = '#6366f1' // Indigo
+            }
 
             return {
               id: `${prereqId}-${node.id}`,
               source: prereqId,
               target: node.id,
               type: 'smoothstep',
-              animated: !isMastered && prereqMastery > 0,
+              animated: (!isMastered && prereqMastery > 0) || isPathEdge,
               style: {
                 stroke: strokeColor,
-                strokeWidth: 2,
+                strokeWidth: isPathEdge ? 3 : 2,
                 strokeDasharray: isMastered ? '0' : '5 5',
-                opacity: isInProgress ? 1 : 0.4,
+                opacity: selectedNodeId ? (isPathEdge ? 1 : 0.15) : (isInProgress ? 1 : 0.4),
               },
               markerEnd: {
                 type: MarkerType.ArrowClosed,
@@ -165,7 +207,7 @@ export function SkillTreeGraph({ nodes: skillNodes, title, onNodeClick, classNam
             }
           })
       ),
-    [skillNodes, masteryMap]
+    [skillNodes, masteryMap, selectedNodeId, selectedPathNodes]
   )
 
   // Apply dagre layout
@@ -179,6 +221,7 @@ export function SkillTreeGraph({ nodes: skillNodes, title, onNodeClick, classNam
 
   const handleNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
+      setSelectedNodeId(node.id)
       const skillNode = skillNodes.find((n) => n.id === node.id)
       if (skillNode && onNodeClick) {
         onNodeClick(node.id, skillNode)
@@ -186,6 +229,10 @@ export function SkillTreeGraph({ nodes: skillNodes, title, onNodeClick, classNam
     },
     [skillNodes, onNodeClick]
   )
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNodeId(null)
+  }, [])
 
   if (skillNodes.length === 0) {
     return (
@@ -203,6 +250,7 @@ export function SkillTreeGraph({ nodes: skillNodes, title, onNodeClick, classNam
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={handleNodeClick}
+        onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         connectionLineType={ConnectionLineType.SmoothStep}
         fitView

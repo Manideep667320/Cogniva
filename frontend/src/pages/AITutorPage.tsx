@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Send, Trash2, BrainCircuit, Loader as Loader2, TriangleAlert as AlertTriangle, History } from 'lucide-react'
+import { Send, Trash2, BrainCircuit, Loader as Loader2, TriangleAlert as AlertTriangle, History, Zap, Signal } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -10,12 +11,20 @@ import { Separator } from '@/components/ui/separator'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ChatBubble } from '@/components/chat/ChatBubble'
 import { useAuth } from '@/contexts/AuthContext'
-import { sendTutorMessage } from '@/lib/api'
+import { streamTutorMessage, sendTutorMessage, getLearningProfile } from '@/lib/api'
 
 interface LocalMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
+  isStreaming?: boolean
+}
+
+interface ProfileQuickStats {
+  learning_speed: string
+  difficulty_level: string
+  engagement_score: number
+  correct_rate: number
 }
 
 const SUGGESTED_PROMPTS = [
@@ -30,22 +39,27 @@ export function AITutorPage() {
   const [messages, setMessages] = useState<LocalMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [streaming, setStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [profileStats, setProfileStats] = useState<ProfileQuickStats | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     if (!user) return
-    // Chat history will be loaded from backend API
+    // Load learning profile stats
+    getLearningProfile()
+      .then(setProfileStats)
+      .catch(() => {})
   }, [user])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
+  }, [messages, loading, streaming])
 
   async function sendMessage(text?: string) {
     const msgText = (text ?? input).trim()
-    if (!msgText || loading) return
+    if (!msgText || loading || streaming) return
 
     setInput('')
     setError(null)
@@ -56,36 +70,81 @@ export function AITutorPage() {
       timestamp: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, userMsg])
-    setLoading(true)
 
+    // Try streaming first, fallback to regular
     try {
-      const conversationHistory = messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }))
+      setStreaming(true)
 
-      const result = await sendTutorMessage({
-        message: msgText,
-        user_id: user!.id,
-        history: conversationHistory,
-      })
-
-      const assistantMsg: LocalMessage = {
+      // Add an empty assistant message that will be filled by streaming
+      const streamingMsg: LocalMessage = {
         role: 'assistant',
-        content: result.response,
+        content: '',
         timestamp: new Date().toISOString(),
+        isStreaming: true,
       }
-      setMessages((prev) => [...prev, assistantMsg])
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : 'Unknown error'
-      setError(
-        errMsg.includes('Failed to fetch') || errMsg.includes('Backend error')
-          ? 'Cannot reach the AI backend. Make sure the FastAPI server is running on http://localhost:8000 with Ollama.'
-          : errMsg
-      )
-      setMessages((prev) => prev.slice(0, -1))
+      setMessages((prev) => [...prev, streamingMsg])
+
+      await streamTutorMessage({
+        message: msgText,
+        onChunk: (chunk) => {
+          setMessages((prev) => {
+            const updated = [...prev]
+            const lastMsg = updated[updated.length - 1]
+            if (lastMsg && lastMsg.role === 'assistant') {
+              lastMsg.content += chunk
+            }
+            return [...updated]
+          })
+        },
+        onDone: () => {
+          setMessages((prev) => {
+            const updated = [...prev]
+            const lastMsg = updated[updated.length - 1]
+            if (lastMsg) lastMsg.isStreaming = false
+            return [...updated]
+          })
+        },
+        onError: (errMsg) => {
+          setError(errMsg)
+        },
+      })
+    } catch {
+      // Fallback to non-streaming
+      try {
+        // Remove the streaming placeholder
+        setMessages((prev) => prev.filter((m) => !m.isStreaming))
+        setStreaming(false)
+        setLoading(true)
+
+        const conversationHistory = messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        }))
+
+        const result = await sendTutorMessage({
+          message: msgText,
+          user_id: user!.id,
+          history: conversationHistory,
+        })
+
+        const assistantMsg: LocalMessage = {
+          role: 'assistant',
+          content: result.response,
+          timestamp: new Date().toISOString(),
+        }
+        setMessages((prev) => [...prev, assistantMsg])
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : 'Unknown error'
+        setError(
+          errMsg.includes('Failed to fetch') || errMsg.includes('Backend error')
+            ? 'Cannot reach the AI backend. Make sure the server is running on http://localhost:8000 with Ollama.'
+            : errMsg
+        )
+        setMessages((prev) => prev.slice(0, -1))
+      }
     } finally {
       setLoading(false)
+      setStreaming(false)
       textareaRef.current?.focus()
     }
   }
@@ -103,6 +162,7 @@ export function AITutorPage() {
   }
 
   const hasMessages = messages.length > 0
+  const isProcessing = loading || streaming
 
   return (
     <AppLayout
@@ -110,9 +170,20 @@ export function AITutorPage() {
       description="Ask anything — powered by local LLM via Ollama"
       headerRight={
         <div className="flex items-center gap-2">
+          {profileStats && (
+            <Badge variant="outline" className="hidden sm:flex gap-1 items-center text-xs">
+              <Zap className="size-3" />
+              {profileStats.difficulty_level}
+            </Badge>
+          )}
           <Badge variant="outline" className="hidden sm:flex gap-1 items-center">
             <div className="size-1.5 rounded-full bg-emerald-500" /> Phi-3 / Mistral
           </Badge>
+          {streaming && (
+            <Badge variant="outline" className="gap-1 items-center text-primary border-primary/30 animate-pulse">
+              <Signal className="size-3" /> Streaming
+            </Badge>
+          )}
           {hasMessages && (
             <Button variant="ghost" size="sm" onClick={clearSession} className="text-muted-foreground">
               <Trash2 className="size-4 mr-1" /> Clear
@@ -127,38 +198,64 @@ export function AITutorPage() {
           <ScrollArea className="flex-1 p-4">
             {!hasMessages ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-6 text-center px-4">
-                <div className="flex size-16 items-center justify-center rounded-2xl brand-gradient shadow-lg">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className="flex size-16 items-center justify-center rounded-2xl brand-gradient shadow-lg"
+                >
                   <BrainCircuit className="size-8 text-white" />
-                </div>
-                <div>
+                </motion.div>
+                <motion.div
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                >
                   <h3 className="text-xl font-bold">How can I help you learn today?</h3>
                   <p className="text-muted-foreground text-sm mt-1 max-w-sm">
                     Ask me anything — concepts, problem-solving, code explanations, or study tips.
+                    {profileStats && (
+                      <span className="block mt-1 text-primary/70">
+                        Difficulty: {profileStats.difficulty_level} • Accuracy: {profileStats.correct_rate}%
+                      </span>
+                    )}
                   </p>
-                </div>
+                </motion.div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
-                  {SUGGESTED_PROMPTS.map((prompt) => (
-                    <button
+                  {SUGGESTED_PROMPTS.map((prompt, i) => (
+                    <motion.button
                       key={prompt}
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.3 + i * 0.1, duration: 0.3 }}
                       onClick={() => sendMessage(prompt)}
                       className="text-left rounded-lg border border-border/60 p-3 text-sm hover:border-primary/50 hover:bg-accent transition-colors"
                     >
                       {prompt}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
             ) : (
               <div className="flex flex-col gap-4 pb-2">
-                {messages.map((msg, i) => (
-                  <ChatBubble
-                    key={i}
-                    role={msg.role}
-                    content={msg.content}
-                    timestamp={msg.timestamp}
-                  />
-                ))}
-                {loading && (
+                <AnimatePresence mode="popLayout">
+                  {messages.map((msg, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <ChatBubble
+                        role={msg.role}
+                        content={msg.content}
+                        timestamp={msg.timestamp}
+                        isStreaming={msg.isStreaming}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                {loading && !streaming && (
                   <div className="flex gap-3">
                     <div className="flex size-8 shrink-0 items-center justify-center rounded-full brand-gradient mt-1">
                       <BrainCircuit className="size-4 text-white" />
@@ -195,19 +292,19 @@ export function AITutorPage() {
                 onKeyDown={handleKeyDown}
                 rows={1}
                 className="min-h-[44px] max-h-32 resize-none flex-1 bg-muted border-border/60 focus-visible:border-primary"
-                disabled={loading}
+                disabled={isProcessing}
               />
               <Button
                 onClick={() => sendMessage()}
-                disabled={!input.trim() || loading}
+                disabled={!input.trim() || isProcessing}
                 size="icon"
                 className="brand-gradient text-white border-0 shrink-0 size-[44px]"
               >
-                {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                {isProcessing ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1.5 px-1">
-              Powered by Ollama local LLM • Responses stored in your history
+              Powered by Ollama local LLM • {streaming ? '🔴 Streaming live' : 'Responses stored in your history'}
             </p>
           </div>
         </div>
@@ -250,6 +347,21 @@ export function AITutorPage() {
               </div>
             )}
           </ScrollArea>
+
+          {/* Profile Quick Stats */}
+          {profileStats && (
+            <div className="border-t border-border/60 p-3 space-y-1.5">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Your Profile</p>
+              <div className="grid grid-cols-2 gap-1">
+                <div className="text-xs text-muted-foreground">Speed</div>
+                <div className="text-xs font-medium text-right capitalize">{profileStats.learning_speed}</div>
+                <div className="text-xs text-muted-foreground">Difficulty</div>
+                <div className="text-xs font-medium text-right capitalize">{profileStats.difficulty_level}</div>
+                <div className="text-xs text-muted-foreground">Accuracy</div>
+                <div className="text-xs font-medium text-right">{profileStats.correct_rate}%</div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>

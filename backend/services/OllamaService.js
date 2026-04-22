@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { llmCache } from './cacheService.js'
 
 const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434'
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'phi'
@@ -40,6 +41,14 @@ export class OllamaService {
 
       console.log(`🤖 Sending request to Ollama (${this.model})...`)
 
+      // Check LLM cache for repeated queries
+      const cacheKey = `llm:${this._hashPrompt(fullPrompt)}`
+      const cached = llmCache.get(cacheKey)
+      if (cached) {
+        console.log('💾 LLM cache hit')
+        return cached
+      }
+
       const response = await this.client.post('/api/generate', {
         model: this.model,
         prompt: fullPrompt,
@@ -56,11 +65,16 @@ export class OllamaService {
 
       console.log('✅ Response generated successfully')
 
-      return {
+      const result = {
         response: assistantMessage,
         model: this.model,
         tokens_used: response.data.eval_count || 0,
       }
+
+      // Cache the result (5 min TTL)
+      llmCache.set(cacheKey, result, 300000)
+
+      return result
     } catch (error) {
       console.error('❌ Ollama generation error:', error.message)
 
@@ -203,6 +217,125 @@ Return ONLY the JSON:`
         expected_concepts: [skillName],
       }
     }
+  }
+
+  /**
+   * Stream a response from Ollama, calling onChunk for each token
+   * @param {string} prompt - Full prompt to send
+   * @param {Function} onChunk - callback(text) called for each chunk
+   * @param {Array} conversationHistory - Prior messages
+   * @returns {string} Complete response text
+   */
+  async generateStreamingResponse(prompt, onChunk, conversationHistory = []) {
+    let context = ''
+    if (conversationHistory && conversationHistory.length > 0) {
+      context = conversationHistory
+        .map((msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+        .join('\n')
+      context += '\n'
+    }
+
+    const fullPrompt = context + `User: ${prompt}\nAssistant:`
+
+    console.log(`🔄 Streaming request to Ollama (${this.model})...`)
+
+    try {
+      const response = await this.client.post('/api/generate', {
+        model: this.model,
+        prompt: fullPrompt,
+        stream: true,
+        temperature: 0.7,
+        top_p: 0.9,
+      }, {
+        responseType: 'stream',
+        timeout: 180000,
+      })
+
+      let fullResponse = ''
+
+      return new Promise((resolve, reject) => {
+        response.data.on('data', (chunk) => {
+          try {
+            const lines = chunk.toString().split('\n').filter(Boolean)
+            for (const line of lines) {
+              const parsed = JSON.parse(line)
+              if (parsed.response) {
+                fullResponse += parsed.response
+                onChunk(parsed.response)
+              }
+              if (parsed.done) {
+                resolve({
+                  response: fullResponse.trim(),
+                  model: this.model,
+                  tokens_used: parsed.eval_count || 0,
+                })
+              }
+            }
+          } catch (parseErr) {
+            // Partial JSON, skip
+          }
+        })
+
+        response.data.on('error', (err) => {
+          reject(new Error(`Stream error: ${err.message}`))
+        })
+
+        response.data.on('end', () => {
+          if (fullResponse) {
+            resolve({
+              response: fullResponse.trim(),
+              model: this.model,
+              tokens_used: 0,
+            })
+          }
+        })
+      })
+    } catch (error) {
+      if (error.code === 'ECONNREFUSED') {
+        throw new Error('Ollama service is not running.')
+      }
+      throw new Error(`Streaming failed: ${error.message}`)
+    }
+  }
+
+  /**
+   * RAG-enhanced streaming response
+   */
+  async generateWithContextStreaming(userQuery, retrievedChunks = [], onChunk, conversationHistory = []) {
+    const contextText = retrievedChunks
+      .map((chunk, i) => `[Source ${i + 1}]: ${chunk.content || chunk}`)
+      .join('\n\n')
+
+    const ragPrompt = `You are an expert AI tutor. Use the reference material to answer accurately.
+
+REFERENCE MATERIAL:
+${contextText}
+
+INSTRUCTIONS:
+- Answer based ONLY on the reference material
+- Provide clear, structured explanations
+- Include relevant examples
+- End with 1-2 follow-up questions
+
+STUDENT'S QUESTION: ${userQuery}
+
+ANSWER:`
+
+    return this.generateStreamingResponse(ragPrompt, onChunk, conversationHistory)
+  }
+
+  /**
+   * Simple prompt hash for caching
+   */
+  _hashPrompt(text) {
+    let hash = 0
+    const str = text.substring(0, 300)
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash
+    }
+    return `${hash}_${text.length}`
   }
 
   // List available models

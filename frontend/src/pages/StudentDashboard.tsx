@@ -10,9 +10,12 @@ import { MasteryProgress } from '@/components/dashboard/MasteryProgress'
 import { WeakTopicsPanel } from '@/components/dashboard/WeakTopicsPanel'
 import { RecommendationPanel } from '@/components/dashboard/RecommendationPanel'
 import { useAuth } from '@/contexts/AuthContext'
-import { getSkillTrees, getCourses } from '@/lib/api'
+import { getSkillTrees, getCourses, getChatHistory } from '@/lib/api'
 import { CourseCard } from '@/components/courses/CourseCard'
 import { useNavigate } from 'react-router-dom'
+import { LearningHeatmap } from '@/components/dashboard/LearningHeatmap'
+import { LearningProfileCard } from '@/components/dashboard/LearningProfileCard'
+import { MasteryTrendChart } from '@/components/dashboard/MasteryTrendChart'
 
 interface LocalMessage {
   id: string
@@ -58,6 +61,7 @@ export function StudentDashboard() {
   const [recentChats, setRecentChats] = useState<LocalMessage[]>([])
   const [courses, setCourses] = useState<Course[]>([])
   const [treeCount, setTreeCount] = useState(0)
+  const [chatHistory, setChatHistory] = useState<LocalMessage[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -73,6 +77,10 @@ export function StudentDashboard() {
         // Load published courses
         const courseData = await getCourses()
         setCourses(courseData.slice(0, 3)) // Show top 3 for dashboard
+
+        // Load chat history for heatmap
+        const history = await getChatHistory()
+        setChatHistory(history)
       } catch (err) {
         console.error('Failed to load dashboard data:', err)
       }
@@ -119,8 +127,18 @@ export function StudentDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard icon={GitBranch} label="Skill Trees" value={treeCount} trend="Upload notes to create" />
-        <StatCard icon={MessageSquare} label="AI Conversations" value="0" trend="All time" />
+        <StatCard icon={MessageSquare} label="AI Conversations" value={chatHistory.length} trend="All time" />
         <StatCard icon={TrendingUp} label="Learning Streak" value="3 days" trend="Keep it up!" />
+      </div>
+
+      {/* Profile Heatmap Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="lg:col-span-3">
+          <LearningHeatmap history={chatHistory} />
+        </div>
+        <div className="lg:col-span-1">
+          <LearningProfileCard />
+        </div>
       </div>
 
       {/* Main content grid */}
@@ -182,7 +200,10 @@ export function StudentDashboard() {
           </div>
 
           {/* Mastery Progress */}
-          <MasteryProgress />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MasteryProgress />
+            <MasteryTrendChart />
+          </div>
 
           {/* Recent Chat History */}
           <Card className="border-border/60 shadow-sm">
@@ -232,50 +253,45 @@ export function StudentDashboard() {
               )}
             </CardContent>
           </Card>
-
-          {/* Explore Courses Section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold">Explore Courses</h3>
-                <p className="text-xs text-muted-foreground">Expand your knowledge with our library</p>
-              </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link to="/courses">View all courses <ArrowRight className="size-3 ml-1" /></Link>
-              </Button>
-            </div>
-            
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
-              </div>
-            ) : courses.length === 0 ? (
-              <Card className="border-dashed border-border/60 bg-muted/20">
-                <CardContent className="py-8 flex flex-col items-center justify-center text-center gap-2">
-                  <BookOpen className="size-8 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground font-medium">No courses available yet</p>
-                  <p className="text-xs text-muted-foreground">Stay tuned for new content!</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {courses.map((course: Course) => (
-                  <CourseCard 
-                    key={course._id || course.id} 
-                    course={course} 
-                    onView={() => navigate('/courses')}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* Right column: Recommendations + Weak topics */}
+        {/* Right column: Recommendations + Weak topics + Courses */}
         {treeCount > 0 ? (
           <div className="space-y-4">
             <RecommendationPanel />
             <WeakTopicsPanel />
+
+            {/* Explore Courses Section (Sidebar) */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between px-1">
+                <div>
+                  <h3 className="text-sm font-bold">Explore Courses</h3>
+                </div>
+                <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
+                  <Link to="/courses">View all</Link>
+                </Button>
+              </div>
+              
+              {loading ? (
+                <div className="space-y-2">
+                  {[1, 2].map((i) => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
+                </div>
+              ) : courses.length === 0 ? (
+                <div className="text-center py-4 border border-dashed rounded-lg">
+                  <p className="text-[10px] text-muted-foreground">No courses available</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {courses.slice(0, 2).map((course: Course) => (
+                    <CourseCard 
+                      key={course._id || course.id} 
+                      course={course} 
+                      onView={() => navigate('/courses')}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <Card className="border-border/60 shadow-sm border-l-4 border-l-primary/60 lg:col-span-3">

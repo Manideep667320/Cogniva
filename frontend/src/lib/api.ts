@@ -290,3 +290,163 @@ export async function getRecommendations(skillTreeId?: string) {
   const data = await response.json()
   return data.data
 }
+
+// ─── Streaming APIs ────────────────────────────────────────
+
+export async function streamTutorMessage({
+  message,
+  skill_id,
+  skill_tree_id,
+  onChunk,
+  onDone,
+  onError,
+}: {
+  message: string
+  skill_id?: string
+  skill_tree_id?: string
+  onChunk: (text: string) => void
+  onDone?: (data: { model: string; tokens_used: number }) => void
+  onError?: (error: string) => void
+}) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/tutor/stream`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ message, skill_id, skill_tree_id }),
+    })
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      throw new Error(err.message || 'Streaming failed')
+    }
+
+    const reader = response.body?.getReader()
+    const decoder = new TextDecoder()
+
+    if (!reader) throw new Error('No response body')
+
+    let fullText = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const text = decoder.decode(value, { stream: true })
+      const lines = text.split('\n').filter((l) => l.startsWith('data: '))
+
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line.slice(6))
+          if (data.type === 'chunk') {
+            fullText += data.text
+            onChunk(data.text)
+          } else if (data.type === 'done') {
+            onDone?.(data)
+          } else if (data.type === 'error') {
+            onError?.(data.message)
+          }
+        } catch {
+          // partial line, skip
+        }
+      }
+    }
+
+    return fullText
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Streaming failed'
+    onError?.(msg)
+    throw new Error(msg)
+  }
+}
+
+// ─── Agent APIs ────────────────────────────────────────────
+
+export async function runAgentLoop({
+  skill_tree_id,
+  skill_id,
+}: {
+  skill_tree_id: string
+  skill_id?: string
+}) {
+  const response = await fetch(`${API_BASE_URL}/api/agent/run`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ skill_tree_id, skill_id }),
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.message || 'Agent loop failed')
+  }
+
+  const data = await response.json()
+  return data.data
+}
+
+export async function agentEvaluate({
+  skill_tree_id,
+  skill_id,
+  question,
+  answer,
+  response_time_ms,
+}: {
+  skill_tree_id: string
+  skill_id: string
+  question: string
+  answer: string
+  response_time_ms?: number
+}) {
+  const response = await fetch(`${API_BASE_URL}/api/agent/evaluate`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ skill_tree_id, skill_id, question, answer, response_time_ms }),
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.message || 'Evaluation failed')
+  }
+
+  const data = await response.json()
+  return data.data
+}
+
+export async function runDiagnosis(skillTreeId: string) {
+  const response = await fetch(`${API_BASE_URL}/api/agent/diagnose`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ skill_tree_id: skillTreeId }),
+  })
+
+  if (!response.ok) throw new Error('Diagnosis failed')
+  const data = await response.json()
+  return data.data
+}
+
+// ─── Profile APIs ──────────────────────────────────────────
+
+export async function getLearningProfile() {
+  const response = await fetch(`${API_BASE_URL}/api/profile`, {
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) throw new Error('Failed to fetch learning profile')
+  const data = await response.json()
+  return data.data
+}
+
+export async function updateLearningProfile(updates: {
+  preferred_style?: string
+  difficulty_level?: string
+}) {
+  const response = await fetch(`${API_BASE_URL}/api/profile/update`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(updates),
+  })
+
+  if (!response.ok) throw new Error('Failed to update learning profile')
+  const data = await response.json()
+  return data.data
+}
+

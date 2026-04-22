@@ -13,6 +13,8 @@ import chatRoutes from './routes/chatRoutes.js'
 import courseRoutes from './routes/courseRoutes.js'
 import uploadRoutes from './routes/uploadRoutes.js'
 import skillRoutes from './routes/skillRoutes.js'
+import agentRoutes from './routes/agentRoutes.js'
+import profileRoutes from './routes/profileRoutes.js'
 
 // Load environment variables
 dotenv.config()
@@ -56,6 +58,8 @@ app.use('/api/chat', chatRoutes)
 app.use('/api/course', courseRoutes)
 app.use('/api/upload', uploadRoutes)
 app.use('/api/skill-tree', skillRoutes)
+app.use('/api/agent', agentRoutes)
+app.use('/api/profile', profileRoutes)
 
 // 404 handler
 app.use((req, res) => {
@@ -88,6 +92,9 @@ const startServer = async () => {
 ║  🌳 Skill Trees: Enabled                                  ║
 ║  📤 File Upload: Enabled (10MB limit)                      ║
 ║  🔍 RAG Pipeline: Enabled                                 ║
+║  🤖 Agent System: Enabled (diagnose→plan→teach→evaluate)   ║
+║  👤 Personalization: Enabled                               ║
+║  📡 Streaming: SSE Enabled                                 ║
 ╚══════════════════════════════════════════════════════════╝
       `)
     })
