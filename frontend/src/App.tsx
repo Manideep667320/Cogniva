@@ -7,6 +7,9 @@ import { FacultyDashboard } from '@/pages/FacultyDashboard'
 import { AITutorPage } from '@/pages/AITutorPage'
 import { CoursesPage } from '@/pages/CoursesPage'
 import { SkillTreePage } from '@/pages/SkillTreePage'
+import { ResourcesPage } from '@/pages/ResourcesPage'
+import { InsightsPage } from '@/pages/InsightsPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 import { Spinner } from '@/components/ui/spinner'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -66,6 +69,18 @@ function AppRoutes() {
             <Route
                 path="/skill-tree/:id"
                 element={<ProtectedRoute><SkillTreePage /></ProtectedRoute>}
+            />
+            <Route
+                path="/resources"
+                element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>}
+            />
+            <Route
+                path="/insights"
+                element={<ProtectedRoute><InsightsPage /></ProtectedRoute>}
+            />
+            <Route
+                path="/settings"
+                element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
             />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

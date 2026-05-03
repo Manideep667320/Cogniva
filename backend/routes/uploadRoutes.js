@@ -3,7 +3,7 @@ import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
-import { uploadFile, listUploads, getUploadStatus } from '../controllers/uploadController.js'
+import { uploadFile, listUploads, getUploadStatus, deleteUpload } from '../controllers/uploadController.js'
 import verifyToken from '../middlewares/auth.js'
 
 const router = express.Router()
@@ -53,5 +53,8 @@ router.get('/', listUploads)
 
 // GET /api/upload/:id — Get upload status
 router.get('/:id', getUploadStatus)
+
+// DELETE /api/upload/:id — Delete an upload
+router.delete('/:id', deleteUpload)
 
 export default router

@@ -168,6 +168,19 @@ export async function getFacultyCourses(facultyId: string) {
   }
 }
 
+export async function getFacultyStats(facultyId: string) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/course/stats/${facultyId}`, {
+      headers: getHeaders(),
+    })
+    if (!response.ok) throw new Error('Failed to fetch faculty stats')
+    const data = await response.json()
+    return data.data
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Backend error')
+  }
+}
+
 export async function createCourse(courseData: any) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/course`, {
@@ -241,6 +254,16 @@ export async function getUploadStatus(uploadId: string) {
   if (!response.ok) throw new Error('Failed to fetch upload status')
   const data = await response.json()
   return data.data
+}
+
+export async function deleteUpload(uploadId: string) {
+  const response = await fetch(`${API_BASE_URL}/api/upload/${uploadId}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) throw new Error('Failed to delete resource')
+  return true
 }
 
 // ─── Skill Tree APIs ───────────────────────────────────────
@@ -446,6 +469,34 @@ export async function updateLearningProfile(updates: {
   })
 
   if (!response.ok) throw new Error('Failed to update learning profile')
+  const data = await response.json()
+  return data.data
+}
+
+export async function updateAccount(updates: {
+  full_name?: string
+  bio?: string
+  avatar_url?: string
+}) {
+  const response = await fetch(`${API_BASE_URL}/api/profile/account`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(updates),
+  })
+
+  if (!response.ok) throw new Error('Failed to update account')
+  const data = await response.json()
+  return data.data
+}
+
+// ─── Faculty APIs ──────────────────────────────────────────
+
+export async function getStudentInsights() {
+  const response = await fetch(`${API_BASE_URL}/api/faculty/insights`, {
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) throw new Error('Failed to fetch student insights')
   const data = await response.json()
   return data.data
 }

@@ -8,6 +8,7 @@ import {
     GraduationCap,
     GitBranch,
     Upload,
+    Settings,
 } from 'lucide-react'
 import {
     Sidebar,
@@ -37,6 +38,9 @@ const studentNav = [
 const facultyNav = [
     { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
     { title: 'Manage Courses', url: '/courses', icon: BookOpen },
+    { title: 'Knowledge Base', url: '/resources', icon: Upload },
+    { title: 'Student Insights', url: '/insights', icon: GraduationCap },
+    { title: 'Settings', url: '/settings', icon: Settings },
 ]
 
 export function AppSidebar() {

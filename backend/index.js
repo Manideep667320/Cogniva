@@ -15,6 +15,7 @@ import uploadRoutes from './routes/uploadRoutes.js'
 import skillRoutes from './routes/skillRoutes.js'
 import agentRoutes from './routes/agentRoutes.js'
 import profileRoutes from './routes/profileRoutes.js'
+import facultyRoutes from './routes/facultyRoutes.js'
 
 // Load environment variables
 dotenv.config()
@@ -60,6 +61,7 @@ app.use('/api/upload', uploadRoutes)
 app.use('/api/skill-tree', skillRoutes)
 app.use('/api/agent', agentRoutes)
 app.use('/api/profile', profileRoutes)
+app.use('/api/faculty', facultyRoutes)
 
 // 404 handler
 app.use((req, res) => {

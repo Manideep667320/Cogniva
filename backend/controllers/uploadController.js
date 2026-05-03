@@ -183,3 +183,33 @@ export const getUploadStatus = asyncHandler(async (req, res) => {
     data: upload,
   })
 })
+// DELETE /api/upload/:id — Delete an upload and its vector collection
+export const deleteUpload = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const userId = req.userDb._id
+
+  const upload = await Upload.findOne({ _id: id, user_id: userId })
+
+  if (!upload) {
+    return res.status(404).json({
+      success: false,
+      message: 'Upload not found',
+    })
+  }
+
+  // Delete vector collection if it exists
+  if (upload.embedding_collection) {
+    try {
+      await vectorService.deleteCollection(upload.embedding_collection)
+    } catch (error) {
+      console.error(`Failed to delete collection ${upload.embedding_collection}:`, error.message)
+    }
+  }
+
+  await upload.deleteOne()
+
+  res.json({
+    success: true,
+    message: 'Resource deleted successfully',
+  })
+})

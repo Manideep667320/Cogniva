@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import { Course } from '../models/Course.js'
 import { asyncHandler } from '../middlewares/errorHandler.js'
 
@@ -196,5 +197,39 @@ export const getFacultyCourses = asyncHandler(async (req, res) => {
       skip: parseInt(skip),
       hasMore: total > parseInt(skip) + parseInt(limit),
     },
+  })
+})
+// GET /api/course/stats/:faculty_id
+export const getFacultyStats = asyncHandler(async (req, res) => {
+  const { faculty_id } = req.params
+
+  const stats = await Course.aggregate([
+    { $match: { faculty_id: new mongoose.Types.ObjectId(faculty_id) } },
+    {
+      $group: {
+        _id: null,
+        total_students: { $sum: '$enrollment_count' },
+        avg_rating: { $avg: '$rating' },
+        total_hours: { $sum: '$duration_hours' },
+        total_courses: { $count: {} },
+        published_courses: {
+          $sum: { $cond: [{ $eq: ['$is_published', true] }, 1, 0] }
+        }
+      }
+    }
+  ])
+
+  const result = stats[0] || {
+    total_students: 0,
+    avg_rating: 0,
+    total_hours: 0,
+    total_courses: 0,
+    published_courses: 0
+  }
+
+  res.json({
+    success: true,
+    message: 'Faculty stats retrieved',
+    data: result
   })
 })

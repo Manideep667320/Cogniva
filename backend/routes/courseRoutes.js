@@ -6,6 +6,7 @@ import {
   updateCourse,
   deleteCourse,
   getFacultyCourses,
+  getFacultyStats,
 } from '../controllers/courseController.js'
 import verifyToken from '../middlewares/auth.js'
 import { requireFaculty } from '../middlewares/rbac.js'
@@ -14,6 +15,9 @@ const router = express.Router()
 
 // All routes require authentication
 router.use(verifyToken)
+
+// GET /api/course/stats/:faculty_id - Get faculty stats
+router.get('/stats/:faculty_id', getFacultyStats)
 
 // GET /api/course - Get all published courses
 router.get('/', getCourses)

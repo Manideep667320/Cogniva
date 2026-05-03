@@ -1,5 +1,40 @@
 import personalizationService from '../services/personalizationService.js'
+import { User } from '../models/User.js'
 import { asyncHandler } from '../middlewares/errorHandler.js'
+
+// ... (previous functions)
+
+/**
+ * PUT /api/profile/account
+ * Update user account info (name, bio, avatar)
+ */
+export const updateAccount = asyncHandler(async (req, res) => {
+  const userId = req.userDb._id
+  const { full_name, bio, avatar_url } = req.body
+
+  const user = await User.findById(userId)
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' })
+  }
+
+  if (full_name) user.full_name = full_name
+  if (bio !== undefined) user.bio = bio
+  if (avatar_url !== undefined) user.avatar_url = avatar_url
+
+  await user.save()
+
+  res.json({
+    success: true,
+    message: 'Account updated successfully',
+    data: {
+      full_name: user.full_name,
+      bio: user.bio,
+      avatar_url: user.avatar_url,
+      email: user.email,
+      role: user.role
+    }
+  })
+})
 
 /**
  * GET /api/profile

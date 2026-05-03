@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Search, BookOpen, Loader as Loader2, X, Trash2 } from 'lucide-react'
+import { Plus, Search, BookOpen, Loader as Loader2, X, Trash2, Video, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,6 +16,12 @@ import { getCourses, createCourse, deleteCourse } from '@/lib/api'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { CourseCard } from '@/components/courses/CourseCard'
 
+interface VideoInfo {
+  title: string
+  url: string
+  description?: string
+}
+
 interface Course {
   id: string
   _id?: string
@@ -28,6 +34,7 @@ interface Course {
   duration_hours?: number
   tags?: string[]
   is_published?: boolean
+  videos?: VideoInfo[]
   created_at?: string
 }
 
@@ -54,9 +61,18 @@ export function CoursesPage() {
   const [formLevel, setFormLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner')
   const [formHours, setFormHours] = useState('4')
   const [formTags, setFormTags] = useState('')
+  const [formVideos, setFormVideos] = useState<VideoInfo[]>([{ title: '', url: '' }])
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  const addVideoField = () => setFormVideos([...formVideos, { title: '', url: '' }])
+  const removeVideoField = (index: number) => setFormVideos(formVideos.filter((_, i) => i !== index))
+  const updateVideoField = (index: number, field: keyof VideoInfo, value: string) => {
+    const newVideos = [...formVideos]
+    newVideos[index] = { ...newVideos[index], [field]: value }
+    setFormVideos(newVideos)
+  }
 
   async function loadCourses() {
     setLoading(true)
@@ -86,6 +102,7 @@ export function CoursesPage() {
     setFormLevel('Beginner')
     setFormHours('4')
     setFormTags('')
+    setFormVideos([{ title: '', url: '' }])
     setFormError(null)
     setCreateOpen(true)
   }
@@ -99,7 +116,8 @@ export function CoursesPage() {
     setFormLoading(true)
     setFormError(null)
     const tags = formTags.split(',').map((t) => t.trim()).filter(Boolean)
-    // Send course creation request to backend API
+    const videos = formVideos.filter(v => v.title.trim() && v.url.trim())
+    
     try {
       await createCourse({
         title: formTitle.trim(),
@@ -108,6 +126,7 @@ export function CoursesPage() {
         level: formLevel,
         duration_hours: parseInt(formHours) || 0,
         tags,
+        videos,
       })
       setFormLoading(false)
       setCreateOpen(false)
@@ -223,6 +242,32 @@ export function CoursesPage() {
                   {selectedCourse.content || 'No detailed content has been added yet.'}
                 </div>
               </ScrollArea>
+
+              {selectedCourse.videos && selectedCourse.videos.length > 0 && (
+                <div className="grid gap-3 pt-2">
+                  <div className="flex items-center gap-2">
+                    <Video className="size-4 text-primary" />
+                    <h4 className="text-sm font-semibold">Video Resources</h4>
+                  </div>
+                  <div className="grid gap-2">
+                    {selectedCourse.videos.map((video, idx) => (
+                      <a 
+                        key={idx} 
+                        href={video.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors group"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium group-hover:text-primary transition-colors">{video.title}</span>
+                          {video.description && <span className="text-xs text-muted-foreground">{video.description}</span>}
+                        </div>
+                        <ArrowRight className="size-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
               {isFaculty && selectedCourse.faculty_id === user?.id && (
                 <DialogFooter>
                   <Button
@@ -286,6 +331,55 @@ export function CoursesPage() {
             <div className="grid gap-1.5">
               <Label htmlFor="c-content">Course Content / Syllabus</Label>
               <Textarea id="c-content" placeholder="Detailed course content, topics, learning objectives..." value={formContent} onChange={(e) => setFormContent(e.target.value)} rows={4} />
+            </div>
+
+            {/* Video Resources Section */}
+            <div className="grid gap-3 pt-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Video Resources</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addVideoField} className="h-7 px-2">
+                  <Plus className="size-3 mr-1" /> Add Video
+                </Button>
+              </div>
+              <ScrollArea className={`${formVideos.length > 2 ? 'h-40' : ''} pr-3`}>
+                <div className="flex flex-col gap-3">
+                  {formVideos.map((video, idx) => (
+                    <div key={idx} className="grid gap-2 p-3 border rounded-lg bg-muted/30 relative group">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="grid gap-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Title</Label>
+                          <Input 
+                            placeholder="Video Title" 
+                            value={video.title} 
+                            onChange={(e) => updateVideoField(idx, 'title', e.target.value)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="grid gap-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground">URL</Label>
+                          <Input 
+                            placeholder="https://..." 
+                            value={video.url} 
+                            onChange={(e) => updateVideoField(idx, 'url', e.target.value)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+                      {formVideos.length > 1 && (
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => removeVideoField(idx)}
+                          className="absolute -top-2 -right-2 size-6 rounded-full bg-background border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="size-3 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
