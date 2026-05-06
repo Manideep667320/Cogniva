@@ -6,7 +6,7 @@ interface FinalCTAProps {
 
 export function FinalCTA({ onSignup }: FinalCTAProps) {
   return (
-    <section className="py-24 px-6 overflow-hidden">
+    <section id="pricing" className="py-24 px-6 overflow-hidden">
       <motion.div 
         className="max-w-5xl mx-auto bg-slate-950 rounded-[2.5rem] p-12 md:p-24 text-center relative overflow-hidden shadow-2xl"
         initial={{ opacity: 0, scale: 0.95, y: 30 }}

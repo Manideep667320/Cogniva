@@ -26,7 +26,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
             </div>
         )
     }
-    if (!session) return <Navigate to="/login" replace />
+    if (!session) return <Navigate to="/?auth=login" replace />
     return <>{children}</>
 }
 
@@ -48,7 +48,7 @@ function AppRoutes() {
             />
             <Route
                 path="/login"
-                element={session ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+                element={<Navigate to="/?auth=login" replace />}
             />
             <Route
                 path="/dashboard"

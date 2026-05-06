@@ -115,11 +115,12 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
           {/* Left Panel - Branding (50% Split) */}
           <div className="hidden lg:flex lg:w-1/2 bg-slate-50 relative flex-col p-12 items-center justify-center gap-10">
             {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-xl brand-gradient shadow-lg">
-                <BrainCircuit className="size-5 text-white" />
-              </div>
-              <span className="text-2xl font-black tracking-tighter text-slate-800">Cogniva AI</span>
+            <div className="flex items-center">
+              <img
+                src="/cogniva_horizontal_logo.png"
+                alt="Cogniva AI"
+                className="h-14 w-auto object-contain"
+              />
             </div>
 
             {/* Scaled Blob Image - Consistent with 700px Height */}
@@ -348,8 +349,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
                     </Button>
                   </form>
                 )}
-              </div>
-            </div>
+              </div>            </div>
 
           </div>
         </div>

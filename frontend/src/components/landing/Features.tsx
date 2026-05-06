@@ -34,7 +34,7 @@ export function Features() {
   ];
 
   return (
-    <section className="bg-slate-50/30 py-24 px-6 overflow-hidden">
+    <section id="platform" className="bg-slate-50/30 py-24 px-6 overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <motion.div 
           className="mb-16"

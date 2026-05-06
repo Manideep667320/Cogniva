@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/landing/Navbar'
 import { Hero } from '@/components/landing/Hero'
 import { TrustBadges } from '@/components/landing/TrustBadges'
@@ -18,7 +18,19 @@ export function LandingPage() {
 
   const openLogin = () => setAuthModal({ isOpen: true, mode: 'login' })
   const openSignup = () => setAuthModal({ isOpen: true, mode: 'signup' })
-  const closeAuth = () => setAuthModal(prev => ({ ...prev, isOpen: false }))
+  const closeAuth = () => {
+    setAuthModal(prev => ({ ...prev, isOpen: false }))
+    // Clean up URL params after closing
+    window.history.replaceState({}, document.title, window.location.pathname)
+  }
+
+  // Handle auto-open via query params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const authAction = params.get('auth')
+    if (authAction === 'login') openLogin()
+    else if (authAction === 'signup') openSignup()
+  }, [])
 
   return (
     <div className="min-h-screen bg-surface overflow-x-hidden" style={{

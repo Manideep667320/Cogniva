@@ -59,20 +59,23 @@ export function AppSidebar() {
 
     return (
         <Sidebar collapsible="icon">
-            <SidebarHeader className="p-4">
-                <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg brand-gradient">
-                        <BrainCircuit className="size-4 text-white" />
-                    </div>
-                    <span className="font-bold text-lg tracking-tight brand-gradient-text group-data-[collapsible=icon]:hidden">
-                        Cogniva
-                    </span>
-                </div>
+            <SidebarHeader className="py-8 px-4 flex items-center justify-center min-h-[100px]">
+                <Link to="/dashboard" className="flex items-center justify-center w-full">
+                    <img 
+                        src="/cogniva_horizontal_logo.png" 
+                        alt="Cogniva" 
+                        className="h-12 w-auto object-contain transition-all group-data-[collapsible=icon]:hidden"
+                    />
+                    <img 
+                        src="/logo_icon_topright.png" 
+                        alt="Cogniva" 
+                        className="size-12 object-contain hidden group-data-[collapsible=icon]:block transition-all"
+                    />
+                </Link>
             </SidebarHeader>
 
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>Navigation</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {nav.map((item) => (

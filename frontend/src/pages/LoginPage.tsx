@@ -72,12 +72,13 @@ export function LoginPage() {
           <div className="absolute bottom-10 right-10 size-80 rounded-full bg-white/10 blur-3xl" />
         </div>
         <div className="relative z-10 flex flex-col items-center text-center gap-8 max-w-sm">
-          <div className="flex size-20 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg">
-            <BrainCircuit className="size-10 text-white" />
-          </div>
+          <img 
+            src="/cogniva_main_logo.png" 
+            alt="Cogniva" 
+            className="w-40 h-auto object-contain drop-shadow-[0_20px_50px_rgba(255,255,255,0.2)]"
+          />
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight mb-2">Cogniva</h1>
-            <p className="text-white/80 text-lg leading-relaxed">
+            <p className="text-white/90 text-lg leading-relaxed font-medium">
               Your agentic AI learning companion. Learn faster, retain more, achieve more.
             </p>
           </div>
@@ -98,10 +99,12 @@ export function LoginPage() {
       <div className="flex flex-1 items-center justify-center p-6 bg-background">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="flex size-9 items-center justify-center rounded-lg brand-gradient">
-              <BrainCircuit className="size-5 text-white" />
-            </div>
-            <span className="text-xl font-bold brand-gradient-text">Cogniva</span>
+            <img 
+              src="/logo_icon_topright.png" 
+              alt="Cogniva Icon" 
+              className="size-10"
+            />
+            <span className="text-2xl font-bold brand-gradient-text">Cogniva</span>
           </div>
 
           <div className="mb-6">

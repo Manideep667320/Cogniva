@@ -8,7 +8,7 @@ export function HowItWorks() {
   ];
 
   return (
-    <section className="py-24 px-6 max-w-4xl mx-auto overflow-hidden">
+    <section id="curriculum" className="py-24 px-6 max-w-4xl mx-auto overflow-hidden">
       <motion.h2 
         className="text-4xl font-[Plus_Jakarta_Sans] font-bold text-center mb-20"
         initial={{ opacity: 0, y: 20 }}

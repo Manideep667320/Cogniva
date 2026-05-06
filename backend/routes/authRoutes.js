@@ -12,7 +12,7 @@ const generateToken = (userId) => {
   return jwt.sign(
     { userId, iat: Date.now() },
     process.env.JWT_SECRET || 'your-secret-key',
-    { expiresIn: '7d' }
+    { expiresIn: process.env.JWT_EXPIRY || '1d' }
   )
 }
 

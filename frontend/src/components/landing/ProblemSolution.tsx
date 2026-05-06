@@ -15,7 +15,7 @@ export function ProblemSolution() {
   ];
 
   return (
-    <section className="py-24 px-6 max-w-7xl mx-auto overflow-hidden">
+    <section id="solutions" className="py-24 px-6 max-w-7xl mx-auto overflow-hidden">
       <motion.div 
         className="text-center mb-16"
         initial={{ opacity: 0, y: 20 }}
