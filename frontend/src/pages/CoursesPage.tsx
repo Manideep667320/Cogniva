@@ -287,7 +287,7 @@ export function CoursesPage() {
 
       {/* View Course Dialog */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedCourse && (
             <>
               <DialogHeader>
@@ -449,7 +449,7 @@ export function CoursesPage() {
 
       {/* Create Course Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingCourseId ? 'Edit Course' : 'Create New Course'}</DialogTitle>
             <DialogDescription>Fill in the course details below</DialogDescription>
