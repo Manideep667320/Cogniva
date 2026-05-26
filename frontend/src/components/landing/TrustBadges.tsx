@@ -9,7 +9,7 @@ export function TrustBadges() {
   ];
 
   return (
-    <section className="bg-slate-50/50 py-12">
+    <section className="bg-slate-50/50 dark:bg-transparent py-12">
       <div className="max-w-7xl mx-auto px-6">
         <motion.div 
           className="flex flex-wrap justify-center gap-12 md:gap-24 opacity-60"

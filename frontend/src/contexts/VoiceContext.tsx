@@ -99,7 +99,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       formData.append('audio', blob, 'command.webm')
 
       const token = localStorage.getItem('auth_token')
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cogniva-wu5f.onrender.com'
       const res = await fetch(`${API_BASE_URL}/api/voice/command`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },

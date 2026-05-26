@@ -22,12 +22,11 @@ export function VoiceAvatar() {
 
   return (
     <div 
-      className="fixed z-50 cursor-pointer flex flex-col items-center group" 
-      style={{ right: '95px', bottom: '95px' }}
+      className="fixed bottom-0 right-0 z-50 cursor-pointer flex flex-col items-center group" 
       onClick={toggleRecording}
       title="Click to speak a command"
     >
-      <div style={{ width: '24px', height: '24px' }}>
+      <div style={{ width: '60px', height: '60px' }}>
         <Orb
           hue={isRecording ? 0 : 210} // Red if recording, Blue/Indigo otherwise
           hoverIntensity={isRecording ? 1.0 : 0.5}

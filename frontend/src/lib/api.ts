@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cogniva-wu5f.onrender.com'
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cogniva-wu5f.onrender.com'
 
 function getAuthToken(): string | null {
   return localStorage.getItem('auth_token')

@@ -137,7 +137,7 @@ export function AITutorPage() {
         const errMsg = err instanceof Error ? err.message : 'Unknown error'
         setError(
           errMsg.includes('Failed to fetch') || errMsg.includes('Backend error')
-            ? 'Cannot reach the AI backend. Make sure the server is running on http://localhost:8000.'
+            ? 'Cannot reach the AI backend. Make sure the server is running on https://cogniva-wu5f.onrender.com.'
             : errMsg
         )
         setMessages((prev) => prev.slice(0, -1))

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { ModeToggle } from '@/components/mode-toggle'
 
 interface NavbarProps {
   onLogin: () => void
@@ -41,34 +42,32 @@ export function Navbar({ onLogin, onSignup }: NavbarProps) {
   }, [])
 
   return (
-    <nav className="fixed top-0 w-full z-50 backdrop-blur-3xl border-b border-white/20 shadow-[0_8px_32px_0_rgba(139,92,246,0.05)]" style={{
-      backgroundColor: 'rgba(255, 255, 255, 0.7)'
-    }}>
-      <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
+    <nav className="fixed top-0 w-full z-50 bg-transparent">
+      <div className="flex justify-between items-center w-full px-6 py-4">
         {/* Logo */}
         <div className="flex items-center">
           <img 
             src="/cogniva_horizontal_logo.png" 
             alt="Cogniva AI" 
-            className="h-14 w-auto object-contain hover:brightness-110 transition-all cursor-pointer"
+            className="h-14 w-auto object-contain hover:brightness-110 transition-all cursor-pointer dark:invert dark:hue-rotate-180 dark:mix-blend-screen"
           />
         </div>
 
-        {/* Navigation Links */}
-        <div className="hidden md:flex items-center space-x-8">
+        {/* Navigation Links - Glassmorphic Pill Box */}
+        <div className="hidden md:flex items-center space-x-8 px-6 py-2 rounded-full border border-slate-200/50 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.06)]">
           {navLinks.map((link) => (
             <a 
               key={link.href}
               href={link.href}
               className={`text-sm tracking-tight transition-all relative font-medium ${
                 activeSection === link.href 
-                ? 'text-purple-600' 
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'text-purple-600 dark:text-purple-400' 
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100'
               }`}
             >
               {link.name}
               {activeSection === link.href && (
-                <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-purple-600 rounded-full" />
+                <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-purple-600 dark:bg-purple-400 rounded-full" />
               )}
             </a>
           ))}
@@ -76,8 +75,9 @@ export function Navbar({ onLogin, onSignup }: NavbarProps) {
 
         {/* Action Buttons */}
         <div className="flex items-center space-x-4">
+          <ModeToggle />
           <button 
-            className="text-slate-600 font-medium text-sm hover:text-slate-800 transition-colors" 
+            className="text-slate-600 dark:text-slate-300 font-medium text-sm hover:text-slate-800 dark:hover:text-slate-100 transition-colors" 
             onClick={onLogin}
           >
             Sign In

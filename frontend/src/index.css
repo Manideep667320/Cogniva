@@ -161,3 +161,14 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
 }
+
+/* 3D Transform Utilities */
+.perspective-1000 {
+    perspective: 1000px;
+}
+.preserve-3d {
+    transform-style: preserve-3d;
+}
+.backface-hidden {
+    backface-visibility: hidden;
+}

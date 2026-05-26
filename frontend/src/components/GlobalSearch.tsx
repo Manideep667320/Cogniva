@@ -52,7 +52,7 @@ export function GlobalSearch() {
       setLoading(true)
       try {
         const token = localStorage.getItem('token')
-        const res = await fetch('http://localhost:8000/api/memory/search', {
+        const res = await fetch('https://cogniva-wu5f.onrender.com/api/memory/search', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

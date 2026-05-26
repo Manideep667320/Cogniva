@@ -30,7 +30,7 @@ export function AppLayout({ children, title, description, headerRight }: AppLayo
                         <ModeToggle />
                     </div>
                 </header>
-                <main className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+                <main className="flex flex-1 flex-col gap-4 p-4 md:p-6 pb-24 md:pb-24">
                     {children}
                 </main>
             </SidebarInset>

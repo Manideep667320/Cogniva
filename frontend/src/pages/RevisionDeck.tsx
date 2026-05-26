@@ -31,7 +31,7 @@ export function RevisionDeck() {
   const fetchQueue = async () => {
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch('http://localhost:8000/api/flashcards/queue', {
+      const res = await fetch('https://cogniva-wu5f.onrender.com/api/flashcards/queue', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
@@ -61,7 +61,7 @@ export function RevisionDeck() {
 
     try {
       const token = localStorage.getItem('token')
-      await fetch('http://localhost:8000/api/flashcards/review', {
+      await fetch('https://cogniva-wu5f.onrender.com/api/flashcards/review', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

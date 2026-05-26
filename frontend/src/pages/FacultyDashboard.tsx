@@ -200,7 +200,7 @@ export function FacultyDashboard() {
                 
                 try {
                   const token = localStorage.getItem('token');
-                  const res = await fetch('http://localhost:8000/api/lecture/upload', {
+                  const res = await fetch('https://cogniva-wu5f.onrender.com/api/lecture/upload', {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${token}`

@@ -2,13 +2,13 @@ import { ExternalLink, Globe, Share2, Users } from 'lucide-react'
 
 export function Footer() {
   return (
-    <footer className="border-t border-slate-200/20 bg-slate-50/50 py-12 px-6">
+    <footer className="border-t border-slate-200/20 dark:border-slate-800 bg-slate-50/50 dark:bg-transparent py-12 px-6">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0">
         <div className="flex items-center">
           <img 
             src="/cogniva_horizontal_logo.png" 
             alt="Cogniva AI Logo" 
-            className="h-8 w-auto opacity-80 hover:opacity-100 transition-opacity"
+            className="h-8 w-auto opacity-80 hover:opacity-100 transition-opacity dark:invert dark:hue-rotate-180 dark:mix-blend-screen"
           />
         </div>
         <div className="flex gap-6 text-slate-500 font-medium">
