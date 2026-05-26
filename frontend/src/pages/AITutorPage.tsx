@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Send, Trash2, BrainCircuit, Loader as Loader2, TriangleAlert as AlertTriangle, History, Zap, Signal } from 'lucide-react'
+import { Send, Trash2, BrainCircuit, Loader as Loader2, TriangleAlert as AlertTriangle, History, Zap, Signal, MessageSquare, Clock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ChatBubble } from '@/components/chat/ChatBubble'
 import { useAuth } from '@/contexts/AuthContext'
-import { streamTutorMessage, sendTutorMessage, getLearningProfile } from '@/lib/api'
+import { streamTutorMessage, sendTutorMessage, getLearningProfile, getChatHistory } from '@/lib/api'
 
 interface LocalMessage {
   role: 'user' | 'assistant'
@@ -42,8 +42,24 @@ export function AITutorPage() {
   const [streaming, setStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [profileStats, setProfileStats] = useState<ProfileQuickStats | null>(null)
+  const [historyList, setHistoryList] = useState<any[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  async function fetchHistory() {
+    if (!user) return
+    try {
+      setLoadingHistory(true)
+      const history = await getChatHistory()
+      setHistoryList(history)
+    } catch (err) {
+      console.error('Failed to load chat history:', err)
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
 
   useEffect(() => {
     if (!user) return
@@ -51,6 +67,9 @@ export function AITutorPage() {
     getLearningProfile()
       .then(setProfileStats)
       .catch(() => {})
+    
+    // Load chat history
+    fetchHistory()
   }, [user])
 
   useEffect(() => {
@@ -103,6 +122,7 @@ export function AITutorPage() {
             if (lastMsg) lastMsg.isStreaming = false
             return [...updated]
           })
+          fetchHistory()
         },
         onError: (errMsg) => {
           setError(errMsg)
@@ -133,6 +153,7 @@ export function AITutorPage() {
           timestamp: new Date().toISOString(),
         }
         setMessages((prev) => [...prev, assistantMsg])
+        fetchHistory()
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : 'Unknown error'
         setError(
@@ -159,6 +180,7 @@ export function AITutorPage() {
   function clearSession() {
     setMessages([])
     setError(null)
+    setActiveHistoryId(null)
   }
 
   const hasMessages = messages.length > 0
@@ -195,7 +217,7 @@ export function AITutorPage() {
       <div className="flex h-[calc(100vh-8rem)] gap-4">
         {/* Main Chat Area */}
         <div className="flex flex-1 flex-col rounded-xl border border-border/60 shadow-sm overflow-hidden bg-card">
-          <ScrollArea className="flex-1 p-4">
+          <div className="flex-1 overflow-y-auto p-4 scroll-smooth scrollbar-none">
             {!hasMessages ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-6 text-center px-4">
                 <motion.div
@@ -270,7 +292,7 @@ export function AITutorPage() {
                 <div ref={bottomRef} />
               </div>
             )}
-          </ScrollArea>
+          </div>
 
           {error && (
             <div className="px-4 pb-2">
@@ -316,34 +338,62 @@ export function AITutorPage() {
             <span className="text-sm font-medium">Recent Messages</span>
           </div>
           <ScrollArea className="flex-1">
-            {loading ? (
+            {loadingHistory ? (
               <div className="flex flex-col gap-2 p-3">
                 {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full rounded-md" />)}
               </div>
-            ) : messages.filter((m) => m.role === 'user').length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-32 p-4 text-center">
-                <p className="text-xs text-muted-foreground">No messages yet</p>
+            ) : historyList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-48 p-4 text-center gap-2">
+                <MessageSquare className="size-6 text-muted-foreground/40" />
+                <p className="text-xs text-muted-foreground">No conversations yet</p>
               </div>
             ) : (
-              <div className="flex flex-col p-2 gap-1">
-                {messages
-                  .filter((m) => m.role === 'user')
-                  .map((item, i) => (
-                    <div key={i}>
-                      <button
-                        className="w-full text-left rounded-lg p-2 hover:bg-muted transition-colors"
-                        onClick={() => {
-                          setMessages([item])
-                        }}
-                      >
-                        <p className="text-xs font-medium truncate">{item.content}</p>
-                        <p className="text-xs text-muted-foreground/60 mt-1">
-                          {new Date(item.timestamp).toLocaleDateString()}
-                        </p>
-                      </button>
-                      {i < messages.filter((m) => m.role === 'user').length - 1 && <Separator className="my-1" />}
-                    </div>
-                  ))}
+              <div className="flex flex-col p-2 gap-1.5">
+                {historyList.map((item, i) => (
+                  <div key={item._id || i}>
+                    <button
+                      className={`w-full text-left rounded-lg p-2.5 transition-all group border ${
+                        activeHistoryId === item._id
+                          ? 'bg-accent border-border text-accent-foreground font-medium'
+                          : 'hover:bg-muted border-transparent text-foreground'
+                      }`}
+                      onClick={() => {
+                        setActiveHistoryId(item._id)
+                        setMessages([
+                          {
+                            role: 'user',
+                            content: item.message,
+                            timestamp: item.created_at || new Date().toISOString()
+                          },
+                          {
+                            role: 'assistant',
+                            content: item.response,
+                            timestamp: item.created_at || new Date().toISOString()
+                          }
+                        ])
+                      }}
+                    >
+                      <p className="text-xs font-semibold truncate group-hover:text-primary transition-colors">
+                        {item.message}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {item.response}
+                      </p>
+                      <div className="flex items-center justify-between mt-2 gap-2">
+                        <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+                          <Clock className="size-2.5" />
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </span>
+                        {item.model && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 scale-90 origin-right opacity-80 uppercase tracking-tight">
+                            {item.model}
+                          </Badge>
+                        )}
+                      </div>
+                    </button>
+                    {i < historyList.length - 1 && <Separator className="my-1.5 opacity-40" />}
+                  </div>
+                ))}
               </div>
             )}
           </ScrollArea>
