@@ -31,7 +31,7 @@ export function StudyCalendar() {
 
   const fetchPlans = async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('auth_token')
       const res = await fetch('http://localhost:8000/api/plan/schedule', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -54,7 +54,7 @@ export function StudyCalendar() {
   const handleGenerate = async () => {
     setGenerating(true)
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('auth_token')
       const res = await fetch('http://localhost:8000/api/plan/generate', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -85,7 +85,7 @@ export function StudyCalendar() {
     }))
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('auth_token')
       await fetch(`http://localhost:8000/api/plan/task/${planId}/${taskId}`, {
         method: 'PUT',
         headers: {

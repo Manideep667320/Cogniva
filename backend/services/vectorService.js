@@ -1,182 +1,114 @@
-import { ChromaClient } from 'chromadb'
-
-const CHROMA_HOST = process.env.CHROMA_HOST || 'localhost'
-const CHROMA_PORT = parseInt(process.env.CHROMA_PORT || '8000')
+import Chunk from '../models/Chunk.js'
 
 /**
  * Vector Service
- * Manages ChromaDB collections for storing and querying document embeddings.
+ * Manages vector embeddings using MongoDB Atlas Vector Search.
  */
 class VectorService {
   constructor() {
-    this.client = null
-    this.initialized = false
+    this.initialized = true
   }
 
   /**
-   * Initialize the ChromaDB client
-   */
-  async init() {
-    if (this.initialized) return
-
-    try {
-      this.client = new ChromaClient({
-        host: CHROMA_HOST,
-        port: CHROMA_PORT,
-      })
-      // Test connection
-      await this.client.heartbeat()
-      this.initialized = true
-      console.log(`✅ ChromaDB connected at ${CHROMA_HOST}:${CHROMA_PORT}`)
-    } catch (error) {
-      console.warn('⚠️ ChromaDB not available:', error.message)
-      console.warn('   Vector search will use fallback mode (no ChromaDB)')
-      this.client = null
-      this.initialized = false
-    }
-  }
-
-  /**
-   * Check if ChromaDB is available
+   * Check if Vector DB is available
+   * Since we use MongoDB, it is always available if the app is running.
    */
   async isAvailable() {
-    try {
-      if (!this.client) {
-        await this.init()
-      }
-      if (this.client) {
-        await this.client.heartbeat()
-        return true
-      }
-      return false
-    } catch {
-      this.initialized = false
-      this.client = null
-      return false
-    }
+    return true
   }
 
   /**
-   * Create or get a collection
-   */
-  async getOrCreateCollection(name) {
-    await this.init()
-    if (!this.client) {
-      throw new Error('ChromaDB is not available')
-    }
-
-    try {
-      const collection = await this.client.getOrCreateCollection({
-        name: name,
-        metadata: { 'hnsw:space': 'cosine' },
-      })
-      return collection
-    } catch (error) {
-      throw new Error(`Failed to create collection '${name}': ${error.message}`)
-    }
-  }
-
-  /**
-   * Add documents with embeddings to a collection
+   * Add documents with embeddings to a collection (grouped by collectionName)
    */
   async addDocuments(collectionName, documents, embeddings, metadatas = [], ids = []) {
-    const collection = await this.getOrCreateCollection(collectionName)
-
     // Filter out any entries where embedding is null
     const validIndices = embeddings.reduce((acc, emb, i) => {
       if (emb !== null) acc.push(i)
       return acc
     }, [])
 
-    const validDocs = validIndices.map(i => documents[i])
-    const validEmbs = validIndices.map(i => embeddings[i])
-    const validMetas = validIndices.map(i => metadatas[i] || { chunk_index: i })
-    const validIds = validIndices.map(i => ids[i] || `doc_${i}`)
+    const chunksToInsert = validIndices.map(i => ({
+      collectionName: collectionName,
+      chunk_id: ids[i] || `doc_${i}`,
+      content: documents[i],
+      embedding: embeddings[i],
+      metadata: metadatas[i] || { chunk_index: i },
+    }))
 
-    if (validDocs.length === 0) {
-      console.warn('⚠️ No valid documents to add to ChromaDB')
+    if (chunksToInsert.length === 0) {
+      console.warn('⚠️ No valid documents to add to Vector Search')
       return
     }
 
     try {
-      await collection.add({
-        ids: validIds,
-        documents: validDocs,
-        embeddings: validEmbs,
-        metadatas: validMetas,
-      })
-      console.log(`📦 Added ${validDocs.length} documents to collection '${collectionName}'`)
+      await Chunk.insertMany(chunksToInsert)
+      console.log(`📦 Added ${chunksToInsert.length} documents to vector collection '${collectionName}'`)
     } catch (error) {
-      throw new Error(`Failed to add documents: ${error.message}`)
+      throw new Error(`Failed to add documents to MongoDB Vector Search: ${error.message}`)
     }
   }
 
   /**
-   * Query relevant documents from a collection
+   * Query relevant documents using MongoDB Atlas Vector Search
    */
   async queryRelevant(collectionName, queryEmbedding, topK = 5, where = null) {
-    const collection = await this.getOrCreateCollection(collectionName)
-
     try {
-      const queryParams = {
-        queryEmbeddings: [queryEmbedding],
-        nResults: topK,
-      }
-      
+      // Build the filter
+      const filter = { collectionName }
       if (where) {
-        queryParams.where = where;
+        Object.assign(filter, where)
       }
 
-      const results = await collection.query(queryParams)
+      // Execute $vectorSearch
+      const results = await Chunk.aggregate([
+        {
+          $vectorSearch: {
+            index: 'vector_index',
+            path: 'embedding',
+            queryVector: queryEmbedding,
+            numCandidates: Math.max(topK * 10, 100),
+            limit: topK,
+            filter: {
+              collectionName: collectionName,
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            content: 1,
+            metadata: 1,
+            score: { $meta: 'vectorSearchScore' }
+          }
+        }
+      ])
 
-      if (!results || !results.documents || results.documents.length === 0) {
+      if (!results || results.length === 0) {
         return []
       }
 
-      // Flatten and return with metadata
-      const documents = results.documents[0] || []
-      const metadatas = results.metadatas?.[0] || []
-      const distances = results.distances?.[0] || []
-
-      return documents.map((doc, i) => ({
-        content: doc,
-        metadata: metadatas[i] || {},
-        distance: distances[i] || 0,
+      return results.map(doc => ({
+        content: doc.content,
+        metadata: doc.metadata || {},
+        distance: 1 - doc.score // converting cosine similarity score to distance proxy
       }))
     } catch (error) {
-      console.error('❌ Query failed:', error.message)
+      console.error('❌ Vector Query failed:', error.message)
       return []
     }
   }
 
   /**
-   * Delete a collection
+   * Delete a collection (all chunks with that collectionName)
    */
-  async deleteCollection(name) {
-    await this.init()
-    if (!this.client) return
+  async deleteCollection(collectionName) {
+    if (!collectionName) return
 
     try {
-      await this.client.deleteCollection({ name })
-      console.log(`🗑️ Deleted collection '${name}'`)
+      await Chunk.deleteMany({ collectionName })
+      console.log(`🗑️ Deleted vector collection '${collectionName}' from MongoDB`)
     } catch (error) {
-      console.warn(`⚠️ Failed to delete collection '${name}':`, error.message)
-    }
-  }
-
-  /**
-   * Get collection info
-   */
-  async getCollectionInfo(name) {
-    await this.init()
-    if (!this.client) return null
-
-    try {
-      const collection = await this.client.getCollection({ name })
-      const count = await collection.count()
-      return { name, count }
-    } catch {
-      return null
+      console.error(`❌ Failed to delete vector collection '${collectionName}':`, error.message)
     }
   }
 }

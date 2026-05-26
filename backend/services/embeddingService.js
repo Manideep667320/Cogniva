@@ -1,21 +1,21 @@
 import axios from 'axios'
 
-const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434'
-const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'nomic-embed-text'
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
+const EMBEDDING_MODEL = 'text-embedding-004'
 
 /**
  * Embedding Service
- * Generates vector embeddings using Ollama's embed endpoint.
+ * Generates vector embeddings using Gemini API.
  */
 class EmbeddingService {
   constructor() {
-    this.apiUrl = OLLAMA_API_URL
+    this.apiUrl = GEMINI_API_URL
     this.model = EMBEDDING_MODEL
-    this.client = axios.create({
-      baseURL: this.apiUrl,
-      timeout: 120000, // 2 min timeout for large batches
-    })
     this.cache = new Map() // in-memory cache for embeddings
+  }
+
+  get apiKey() {
+    return (process.env.GEMINI_API_KEY || '').trim();
   }
 
   /**
@@ -33,26 +33,28 @@ class EmbeddingService {
     }
 
     try {
-      const response = await this.client.post('/api/embed', {
-        model: this.model,
-        input: text,
-      })
+      const response = await axios.post(
+        `${this.apiUrl}/${this.model}:embedContent?key=${this.apiKey}`,
+        {
+          model: `models/${this.model}`,
+          content: {
+            parts: [{ text: text }]
+          }
+        }
+      )
 
-      if (!response.data || !response.data.embeddings || response.data.embeddings.length === 0) {
-        throw new Error('No embeddings returned from Ollama')
+      if (!response.data || !response.data.embedding || !response.data.embedding.values) {
+        throw new Error('No embeddings returned from Gemini')
       }
 
-      const embedding = response.data.embeddings[0]
+      const embedding = response.data.embedding.values
 
       // Cache the result
       this.cache.set(cacheKey, embedding)
 
       return embedding
     } catch (error) {
-      if (error.code === 'ECONNREFUSED') {
-        throw new Error('Ollama service is not running. Please start Ollama and pull the nomic-embed-text model.')
-      }
-      throw new Error(`Embedding generation failed: ${error.message}`)
+      throw new Error(`Embedding generation failed: ${error.response?.data?.error?.message || error.message}`)
     }
   }
 
@@ -94,13 +96,7 @@ class EmbeddingService {
    * Check if the embedding model is available
    */
   async isModelAvailable() {
-    try {
-      const response = await this.client.get('/api/tags')
-      const models = response.data?.models || []
-      return models.some(m => m.name.includes(this.model))
-    } catch {
-      return false
-    }
+    return !!this.apiKey
   }
 
   /**

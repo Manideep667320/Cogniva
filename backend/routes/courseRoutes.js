@@ -8,6 +8,12 @@ import {
   getFacultyCourses,
   getFacultyStats,
 } from '../controllers/courseController.js'
+import {
+  generateCourse,
+  enrollCourse,
+  getEnrolledCourses,
+  getEnrollmentStatus
+} from '../controllers/courseExtensions.js'
 import verifyToken from '../middlewares/auth.js'
 import { requireFaculty } from '../middlewares/rbac.js'
 
@@ -21,6 +27,18 @@ router.get('/stats/:faculty_id', getFacultyStats)
 
 // GET /api/course - Get all published courses
 router.get('/', getCourses)
+
+// POST /api/course/generate - AI Course Architect
+router.post('/generate', requireFaculty, generateCourse)
+
+// GET /api/course/enrolled - Get enrolled courses for student
+router.get('/enrolled', getEnrolledCourses)
+
+// POST /api/course/:id/enroll - Enroll in a course
+router.post('/:id/enroll', enrollCourse)
+
+// GET /api/course/:id/status - Get enrollment status
+router.get('/:id/status', getEnrollmentStatus)
 
 // POST /api/course - Create course (faculty only)
 router.post('/', requireFaculty, createCourse)

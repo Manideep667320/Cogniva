@@ -2,7 +2,7 @@ import express from 'express';
 import { verifyToken } from '../middlewares/auth.js';
 import StudyPlan from '../models/StudyPlan.js';
 import ReviewState from '../models/ReviewState.js';
-import SkillTree from '../models/SkillTree.js';
+import { SkillTree } from '../models/SkillTree.js';
 import { runScheduleTask } from '../agents/scheduleAgent.js';
 import mongoose from 'mongoose';
 

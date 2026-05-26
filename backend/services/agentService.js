@@ -3,7 +3,7 @@ import evaluatorService from './evaluatorService.js'
 import personalizationService from './personalizationService.js'
 import { runPlannerTask } from '../agents/plannerAgent.js'
 import { runTutorTask } from '../agents/tutorAgent.js'
-import OllamaService from './OllamaService.js'
+import { Agent } from '../agents/llmConfig.js'
 import skillService from './skillService.js'
 import embeddingService from './embeddingService.js'
 import vectorService from './vectorService.js'
@@ -186,6 +186,14 @@ class AgentService {
 
     const mastery = await skillService.updateMastery(userId, skillTreeId, skillId, isCorrect, mistakeData)
 
+    // Calculate XP if correct
+    let xpGained = 0
+    if (isCorrect) {
+      const level = node?.level || 1
+      const XP_VALUES = [100, 150, 200, 250, 300]
+      xpGained = XP_VALUES[(level - 1) % XP_VALUES.length]
+    }
+
     // Update learning profile
     const updatedProfile = await personalizationService.updateProfile(userId, {
       isCorrect,
@@ -193,6 +201,7 @@ class AgentService {
       mistakeType: evalResult.evaluation.mistake_type,
       concept: skillName,
       evaluatorUpdates: evalResult.profile_updates,
+      xpGained,
     })
 
     return {
@@ -208,7 +217,62 @@ class AgentService {
         learning_speed: updatedProfile.learning_speed,
         difficulty_level: updatedProfile.difficulty_level,
         engagement_score: updatedProfile.engagement_score,
+        total_xp: updatedProfile.total_xp,
       },
+      xp_gained: xpGained,
+    }
+  }
+
+  /**
+   * Fetch structured content for a specific skill node
+   */
+  async getSkillContent(userId, skillTreeId, skillId) {
+    const skillTree = await SkillTree.findById(skillTreeId)
+    const node = skillTree?.nodes.find(n => n.id === skillId)
+    if (!node) throw new Error('Skill node not found')
+
+    let context = await this._getContext(userId, skillTreeId, node.name)
+    
+    // If fallback was used, try to zero in on the relevant section
+    if (context && context.length > 2000) {
+      const idx = context.toLowerCase().indexOf(node.name.toLowerCase())
+      if (idx !== -1) {
+        const start = Math.max(0, idx - 1000)
+        context = context.substring(start, start + 3000)
+      } else {
+        context = context.substring(0, 3000) // limit context size
+      }
+    }
+
+    // Use Gemini to format a tailored lesson for this specific skill node
+    let finalContent = context
+    try {
+      const prompt = `You are an expert AI tutor. Write a clear, engaging, and structured lesson (3-5 paragraphs) explaining the concept of "${node.name}".
+Context from the student's upload (use this to tailor the explanation if relevant):
+${context ? context : node.description}
+
+Rules:
+- Focus entirely on teaching "${node.name}".
+- Use simple, easy-to-understand language.
+- Do NOT include any quizzes or questions at the end.
+- Format with clear paragraph breaks.`
+
+      const agent = new Agent({ name: 'Lesson Generator', role: 'Expert Tutor' })
+      const result = await agent.run(prompt)
+      
+      if (result && result.response) {
+        finalContent = result.response
+      }
+    } catch (err) {
+      console.warn('⚠️ Failed to generate lesson via LLM, using fallback context:', err.message)
+      finalContent = context || node.description || 'No detailed content available for this topic. Proceed to the quiz.'
+    }
+    
+    return {
+      title: node.name,
+      description: node.description,
+      content: finalContent,
+      level: node.level
     }
   }
 
@@ -246,8 +310,9 @@ INSTRUCTIONS:
 
 EXPLANATION:`
 
-    const result = await OllamaService.generateResponse(prompt)
-    return result.response
+    const agent = new Agent({ name: 'Explanation Agent', role: 'Expert AI Tutor' });
+    const result = await agent.run(prompt);
+    return result.response;
   }
 
   /**
@@ -279,8 +344,9 @@ Generate a question that tests understanding (not just memorization). Return ONL
 Return ONLY the JSON:`
 
     try {
-      const result = await OllamaService.generateResponse(prompt)
-      const text = result.response
+      const agent = new Agent({ name: 'Question Generator', role: 'Expert Educator' });
+      const result = await agent.run(prompt);
+      const text = result.response;
 
       try {
         return JSON.parse(text)

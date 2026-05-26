@@ -199,6 +199,24 @@ export async function createCourse(courseData: any) {
   }
 }
 
+export async function updateCourse(id: string, courseData: any) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/course/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(courseData),
+    })
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      throw new Error(err.message || 'Failed to update course')
+    }
+    const data = await response.json()
+    return data.data
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Backend error')
+  }
+}
+
 export async function deleteCourse(id: string) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/course/${id}`, {
@@ -210,6 +228,45 @@ export async function deleteCourse(id: string) {
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : 'Backend error')
   }
+}
+
+export async function generateCourse(prompt: string) {
+  const response = await fetch(`${API_BASE_URL}/api/course/generate`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ prompt }),
+  })
+  if (!response.ok) throw new Error('Failed to generate course')
+  const data = await response.json()
+  return data.data
+}
+
+export async function enrollCourse(id: string) {
+  const response = await fetch(`${API_BASE_URL}/api/course/${id}/enroll`, {
+    method: 'POST',
+    headers: getHeaders(),
+  })
+  if (!response.ok) throw new Error('Failed to enroll in course')
+  const data = await response.json()
+  return data.data
+}
+
+export async function getEnrolledCourses() {
+  const response = await fetch(`${API_BASE_URL}/api/course/enrolled`, {
+    headers: getHeaders(),
+  })
+  if (!response.ok) throw new Error('Failed to fetch enrolled courses')
+  const data = await response.json()
+  return data.data || []
+}
+
+export async function getEnrollmentStatus(id: string) {
+  const response = await fetch(`${API_BASE_URL}/api/course/${id}/status`, {
+    headers: getHeaders(),
+  })
+  if (!response.ok) throw new Error('Failed to fetch enrollment status')
+  const data = await response.json()
+  return data
 }
 
 // ─── Upload APIs ────────────────────────────────────────────
@@ -383,6 +440,21 @@ export async function streamTutorMessage({
 }
 
 // ─── Agent APIs ────────────────────────────────────────────
+
+export async function getSkillContent(skill_tree_id: string, skill_id: string) {
+  const response = await fetch(`${API_BASE_URL}/api/agent/content/${skill_tree_id}/${skill_id}`, {
+    method: 'GET',
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.message || 'Failed to fetch skill content')
+  }
+
+  const data = await response.json()
+  return data.data
+}
 
 export async function runAgentLoop({
   skill_tree_id,

@@ -40,6 +40,7 @@ class PersonalizationService {
       mistakeType,
       concept,
       evaluatorUpdates = {},
+      xpGained = 0,
     } = interactionData
 
     let profile = await LearningProfile.findOne({ user_id: userId })
@@ -52,6 +53,14 @@ class PersonalizationService {
     profile.total_interactions += 1
     if (isCorrect) {
       profile.total_correct += 1
+    }
+    
+    // --- Update XP ---
+    if (xpGained > 0) {
+      if (typeof profile.total_xp !== 'number' || isNaN(profile.total_xp)) {
+        profile.total_xp = 0;
+      }
+      profile.total_xp += xpGained
     }
 
     // --- Update correct rate (rolling) ---
@@ -228,6 +237,7 @@ class PersonalizationService {
       preferred_style: profile.preferred_style,
       difficulty_level: profile.difficulty_level,
       engagement_score: profile.engagement_score,
+      total_xp: profile.total_xp || 0,
       correct_rate: Math.round((profile.correct_rate || 0) * 100),
       total_interactions: profile.total_interactions,
       streak: profile.streak,

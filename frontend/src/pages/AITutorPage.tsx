@@ -137,7 +137,7 @@ export function AITutorPage() {
         const errMsg = err instanceof Error ? err.message : 'Unknown error'
         setError(
           errMsg.includes('Failed to fetch') || errMsg.includes('Backend error')
-            ? 'Cannot reach the AI backend. Make sure the server is running on http://localhost:8000 with Ollama.'
+            ? 'Cannot reach the AI backend. Make sure the server is running on http://localhost:8000.'
             : errMsg
         )
         setMessages((prev) => prev.slice(0, -1))
@@ -167,7 +167,7 @@ export function AITutorPage() {
   return (
     <AppLayout
       title="AI Tutor"
-      description="Ask anything — powered by local LLM via Ollama"
+      description="Ask anything — powered by Gemini AI"
       headerRight={
         <div className="flex items-center gap-2">
           {profileStats && (
@@ -304,7 +304,7 @@ export function AITutorPage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1.5 px-1">
-              Powered by Ollama local LLM • {streaming ? '🔴 Streaming live' : 'Responses stored in your history'}
+              Powered by Gemini AI • {streaming ? '🔴 Streaming live' : 'Responses stored in your history'}
             </p>
           </div>
         </div>

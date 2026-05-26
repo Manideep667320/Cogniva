@@ -19,13 +19,21 @@ export const runAgentLoop = asyncHandler(async (req, res) => {
     })
   }
 
-  const result = await agentService.runLoop(userId, skill_tree_id, skill_id)
+  try {
+    const result = await agentService.runLoop(userId, skill_tree_id, skill_id)
 
-  res.json({
-    success: true,
-    message: 'Agent loop completed',
-    data: result,
-  })
+    res.json({
+      success: true,
+      message: 'Agent loop completed',
+      data: result,
+    })
+  } catch (error) {
+    console.error("Agent Loop Error:", error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal Server Error'
+    })
+  }
 })
 
 /**
@@ -102,5 +110,28 @@ export const getAgentStatus = asyncHandler(async (req, res) => {
       status: 'healthy',
       cache: cacheStats,
     },
+  })
+})
+
+/**
+ * GET /api/agent/content/:skill_tree_id/:skill_id
+ * Fetch the stored context/lesson for a skill node
+ */
+export const getSkillContent = asyncHandler(async (req, res) => {
+  const { skill_tree_id, skill_id } = req.params
+  const userId = req.userDb._id
+
+  if (!skill_tree_id || !skill_id) {
+    return res.status(400).json({
+      success: false,
+      message: 'skill_tree_id and skill_id are required',
+    })
+  }
+
+  const content = await agentService.getSkillContent(userId, skill_tree_id, skill_id)
+
+  res.json({
+    success: true,
+    data: content,
   })
 })

@@ -1,4 +1,4 @@
-import { Agent } from 'lyzr-adk';
+import { Agent } from './llmConfig.js';
 import memoryService from '../services/memoryService.js';
 import { getGeminiModel } from './llmConfig.js';
 

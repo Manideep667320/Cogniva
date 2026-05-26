@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
+import { VoiceProvider } from '@/contexts/VoiceContext'
 import { LoginPage } from '@/pages/LoginPage'
 import { LandingPage } from '@/pages/LandingPage'
 import { StudentDashboard } from '@/pages/StudentDashboard'
@@ -112,8 +113,10 @@ export function App() {
     return (
         <BrowserRouter>
             <AuthProvider>
-                <AppRoutes />
-                <VoiceAvatar />
+                <VoiceProvider>
+                    <AppRoutes />
+                    <VoiceAvatar />
+                </VoiceProvider>
             </AuthProvider>
         </BrowserRouter>
     )

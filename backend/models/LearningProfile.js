@@ -65,6 +65,10 @@ const learningProfileSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    total_xp: {
+      type: Number,
+      default: 0,
+    },
     total_interactions: {
       type: Number,
       default: 0,

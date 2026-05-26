@@ -1,6 +1,6 @@
 import { SkillTree } from '../models/SkillTree.js'
 import { Mastery } from '../models/Mastery.js'
-import OllamaService from './OllamaService.js'
+import GeminiService from './GeminiService.js'
 
 /**
  * Skill Service
@@ -55,7 +55,7 @@ Return ONLY the JSON:`
     try {
       console.log('🌳 Generating skill tree via LLM...')
 
-      const result = await OllamaService.generateResponse(prompt)
+      const result = await GeminiService.generateResponse(prompt)
       const responseText = result.response
 
       // Parse the JSON from the response
@@ -85,7 +85,7 @@ Return ONLY the JSON:`
       // Create initial mastery records for each node
       const masteryPromises = skillData.nodes.map(node =>
         Mastery.findOneAndUpdate(
-          { user_id: userId, skill_id: node.id },
+          { user_id: userId, skill_tree_id: skillTree._id, skill_id: node.id },
           {
             user_id: userId,
             skill_tree_id: skillTree._id,
@@ -190,6 +190,7 @@ Return ONLY the JSON:`
   async updateMastery(userId, skillTreeId, skillId, isCorrect, mistakeData = null) {
     let mastery = await Mastery.findOne({
       user_id: userId,
+      skill_tree_id: skillTreeId,
       skill_id: skillId,
     })
 

@@ -101,7 +101,7 @@ const startServer = async () => {
 ║  📍 Running on http://localhost:${PORT}                      ║
 ║  🗄️  Database: MongoDB                                    ║
 ║  🔐 Auth: JWT + MongoDB                                   ║
-║  🤖 AI: Ollama (${process.env.OLLAMA_MODEL || 'phi'} model)                                ║
+║  🤖 AI: Gemini API                                         ║
 ║  📚 Course Management: Enabled                            ║
 ║  🌳 Skill Trees: Enabled                                  ║
 ║  📤 File Upload: Enabled (10MB limit)                      ║

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { GitBranch, Upload, ArrowLeft, Loader2, RefreshCw, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -46,6 +47,7 @@ export function SkillTreePage() {
   const [selectedSkill, setSelectedSkill] = useState<SkillNodeData | null>(null)
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const loadTrees = useCallback(async () => {
     try {
@@ -89,13 +91,28 @@ export function SkillTreePage() {
       if (selectedTree?._id === treeId) {
         setSelectedTree(null)
         setSelectedSkill(null)
+        navigate('/skill-tree', { replace: true })
       }
+      toast.success('Skill tree deleted.')
     } catch {
-      // silently fail
+      toast.error('Failed to delete skill tree.')
+    } finally {
+      setConfirmDeleteId(null)
     }
   }
 
   function handleNodeClick(nodeId: string, nodeData: SkillNodeData) {
+    // Check if prerequisites are met
+    const prerequisitesMet = nodeData.prerequisites.every((prereqId) => {
+      const prereqNode = selectedTree?.nodes.find((n) => n.id === prereqId)
+      return (prereqNode?.mastery_data?.mastery_score ?? prereqNode?.mastery ?? 0) >= 50
+    })
+
+    if (!prerequisitesMet) {
+      toast.error('Skill locked. Complete previous nodes first!')
+      return
+    }
+
     setSelectedSkill(nodeData)
   }
 
@@ -158,36 +175,77 @@ export function SkillTreePage() {
               </div>
             ) : (
               trees.map((tree) => (
-                <button
+                <div
                   key={tree._id}
-                  onClick={() => handleSelectTree(tree._id)}
                   className={`
-                    w-full text-left rounded-lg border p-3 transition-all
+                    group relative rounded-lg border p-3 transition-all
                     ${selectedTree?._id === tree._id
                       ? 'border-primary/50 bg-primary/5 shadow-sm'
                       : 'border-border/60 hover:border-border hover:bg-muted/50'
                     }
                   `}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{tree.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {tree.nodes?.length || 0} skills
-                      </p>
+                  {confirmDeleteId === tree._id ? (
+                    // Confirmation state
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-destructive">Delete this tree?</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{tree.title}</p>
+                      <div className="flex gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="flex-1 h-7 text-xs"
+                          onClick={() => handleDeleteTree(tree._id)}
+                        >
+                          Delete
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-7 text-xs"
+                          onClick={() => setConfirmDeleteId(null)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs shrink-0 ${
-                        tree.overall_mastery >= 80 ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500/30' :
-                        tree.overall_mastery >= 50 ? 'text-amber-600 dark:text-amber-400 border-amber-500/30' :
-                        'text-muted-foreground'
-                      }`}
-                    >
-                      {tree.overall_mastery}%
-                    </Badge>
-                  </div>
-                </button>
+                  ) : (
+                    // Normal state — use div+role to avoid nested <button> HTML error
+                    <div className="flex items-start justify-between gap-2">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className="min-w-0 flex-1 cursor-pointer"
+                        onClick={() => handleSelectTree(tree._id)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSelectTree(tree._id)}
+                      >
+                        <p className="text-sm font-medium truncate">{tree.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {tree.nodes?.length || 0} skills
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${
+                            tree.overall_mastery >= 80 ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500/30' :
+                            tree.overall_mastery >= 50 ? 'text-amber-600 dark:text-amber-400 border-amber-500/30' :
+                            'text-muted-foreground'
+                          }`}
+                        >
+                          {tree.overall_mastery}%
+                        </Badge>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(tree._id) }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
+                          title="Delete skill tree"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ))
             )}
           </div>

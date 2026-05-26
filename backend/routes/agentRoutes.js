@@ -4,6 +4,7 @@ import {
   agentEvaluate,
   runDiagnosis,
   getAgentStatus,
+  getSkillContent,
 } from '../controllers/agentController.js'
 import verifyToken from '../middlewares/auth.js'
 
@@ -23,5 +24,8 @@ router.post('/diagnose', runDiagnosis)
 
 // GET /api/agent/status - Agent system health
 router.get('/status', getAgentStatus)
+
+// GET /api/agent/content/:skill_tree_id/:skill_id - Get skill lesson content
+router.get('/content/:skill_tree_id/:skill_id', getSkillContent)
 
 export default router

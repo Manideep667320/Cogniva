@@ -96,7 +96,7 @@ export function GlobalSearch() {
   return (
     <>
       <div className="w-full max-w-sm hidden md:block" onClick={() => setOpen(true)}>
-        <Button variant="outline" className="w-full justify-start text-muted-foreground shadow-sm bg-muted/50">
+        <Button variant="outline" className="relative w-full justify-start text-muted-foreground shadow-sm bg-muted/50">
           <span className="hidden lg:inline-flex">Search your academic history...</span>
           <span className="inline-flex lg:hidden">Search...</span>
           <kbd className="pointer-events-none absolute right-[0.3rem] top-[0.3rem] hidden h-6 select-none items-center gap-1 rounded-sm border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">

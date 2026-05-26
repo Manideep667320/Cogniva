@@ -1,4 +1,4 @@
-import OllamaService from './OllamaService.js'
+import GeminiService from './GeminiService.js'
 
 /**
  * Evaluator Agent Service
@@ -24,7 +24,7 @@ class EvaluatorService {
 
     // Build an enhanced evaluation prompt that considers difficulty
     const difficultyContext = this._getDifficultyGuidance(difficulty)
-    const evaluation = await OllamaService.evaluateAnswer(question, answer, context)
+    const evaluation = await GeminiService.evaluateAnswer(question, answer, context)
 
     const responseTimeMs = Date.now() - startTime
 

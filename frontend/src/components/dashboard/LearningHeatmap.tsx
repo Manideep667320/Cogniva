@@ -14,7 +14,7 @@ interface LearningHeatmapProps {
 }
 
 export const LearningHeatmap = memo(function LearningHeatmap({ history }: LearningHeatmapProps) {
-  const [selectedYear, setSelectedYear] = useState(2024)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const weeksToShow = 53 // Full year
 
   const formatTimeSpent = (count: number) => {

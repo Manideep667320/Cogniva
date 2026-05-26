@@ -65,15 +65,15 @@ export function AppSidebar() {
         <Sidebar collapsible="icon">
             <SidebarHeader className="py-8 px-4 flex items-center justify-center min-h-[100px]">
                 <Link to="/dashboard" className="flex items-center justify-center w-full">
-                    <img 
-                        src="/cogniva_horizontal_logo.png" 
-                        alt="Cogniva" 
+                    <img
+                        src="/cogniva_horizontal_logo.png"
+                        alt="Cogniva"
                         className="h-12 w-auto object-contain transition-all group-data-[collapsible=icon]:hidden"
                     />
-                    <img 
-                        src="/logo_icon_topright.png" 
-                        alt="Cogniva" 
-                        className="size-12 object-contain hidden group-data-[collapsible=icon]:block transition-all"
+                    <img
+                        src="/Logo.png"
+                        alt="Cogniva"
+                        className="size-10 object-contain hidden group-data-[collapsible=icon]:block transition-all scale-[1.5] drop-shadow-sm ml-1"
                     />
                 </Link>
             </SidebarHeader>

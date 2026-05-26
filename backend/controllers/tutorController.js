@@ -2,7 +2,7 @@ import { Chat } from '../models/Chat.js'
 import { SkillTree } from '../models/SkillTree.js'
 import { Upload } from '../models/Upload.js'
 import { asyncHandler } from '../middlewares/errorHandler.js'
-import OllamaService from '../services/OllamaService.js'
+import GeminiService from '../services/GeminiService.js'
 import embeddingService from '../services/embeddingService.js'
 import vectorService from '../services/vectorService.js'
 import skillService from '../services/skillService.js'
@@ -83,13 +83,13 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
   // Generate response with or without context
   if (retrievedContext.length > 0) {
-    aiResult = await OllamaService.generateWithContext(
+    aiResult = await GeminiService.generateWithContext(
       message,
       retrievedContext,
       conversationHistory
     )
   } else {
-    aiResult = await OllamaService.generateResponse(message, conversationHistory)
+    aiResult = await GeminiService.generateResponse(message, conversationHistory)
   }
 
   // Save to database
@@ -171,7 +171,7 @@ export const evaluateAnswer = asyncHandler(async (req, res) => {
   }
 
   // Evaluate the answer using LLM
-  const evaluation = await OllamaService.evaluateAnswer(question, answer, context)
+  const evaluation = await GeminiService.evaluateAnswer(question, answer, context)
 
   // Update mastery
   const isCorrect = evaluation.is_correct || evaluation.score >= 70
@@ -274,7 +274,7 @@ export const generateQuestion = asyncHandler(async (req, res) => {
     console.warn('⚠️ Context retrieval for question gen failed:', error.message)
   }
 
-  const questionData = await OllamaService.generateQuestion(node.name, context)
+  const questionData = await GeminiService.generateQuestion(node.name, context)
 
   res.json({
     success: true,
@@ -308,33 +308,29 @@ export const getChatHistory = asyncHandler(async (req, res) => {
       limit: parseInt(limit),
       skip: parseInt(skip),
       hasMore: total > parseInt(skip) + parseInt(limit),
+context_count: retrievedContext.length,
     },
   })
 })
 
 // GET /api/tutor/health
 export const checkHealth = asyncHandler(async (req, res) => {
-  const isHealthy = await OllamaService.isHealthy()
-
+  const isHealthy = await GeminiService.isHealthy()
+  
   if (!isHealthy) {
-    return res.status(503).json({
-      success: false,
-      message: 'Ollama service is not available',
+    return res.status(503).json({ 
+      success: false, 
+      message: 'Gemini service is not available',
     })
   }
-
-  const models = await OllamaService.getAvailableModels()
-  const chromaAvailable = await vectorService.isAvailable()
 
   res.json({
     success: true,
     message: 'AI Tutor service is healthy',
     data: {
-      ollama_status: 'connected',
-      chroma_status: chromaAvailable ? 'connected' : 'unavailable',
-      available_models: models.length > 0 ? models.map((m) => m.name) : [],
-      current_model: process.env.OLLAMA_MODEL || 'phi',
-    },
+      gemini_status: 'connected',
+      current_model: 'gemini-flash-lite-latest',
+    }
   })
 })
 
@@ -432,11 +428,11 @@ export const streamMessage = asyncHandler(async (req, res) => {
   try {
     let result
     if (retrievedContext.length > 0) {
-      result = await OllamaService.generateWithContextStreaming(
+      result = await GeminiService.generateWithContextStreaming(
         message, retrievedContext, onChunk
       )
     } else {
-      result = await OllamaService.generateStreamingResponse(message, onChunk)
+      result = await GeminiService.generateStreamingResponse(message, onChunk)
     }
 
     // Send completion event

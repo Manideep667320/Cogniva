@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, FileText, CheckCircle2, Loader2, AlertCircle, X, Clock } from 'lucide-react'
+import { Upload, FileText, CheckCircle2, Loader2, AlertCircle, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { uploadFile, getUploadStatus, getUploads } from '@/lib/api'
+import { uploadFile, getUploadStatus, getUploads, deleteUpload } from '@/lib/api'
+import { toast } from 'sonner'
 import { useEffect } from 'react'
 
 interface UploadRecord {
@@ -36,6 +37,8 @@ export function UploadPanel({ onUploadComplete, compact = false }: UploadPanelPr
   const [uploads, setUploads] = useState<UploadRecord[]>([])
   const [uploading, setUploading] = useState(false)
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   // Load existing uploads
   useEffect(() => {
@@ -85,6 +88,21 @@ export function UploadPanel({ onUploadComplete, compact = false }: UploadPanelPr
       }
     } catch {
       // silently fail
+    }
+  }
+
+  async function handleDeleteUpload(uploadId: string) {
+    setDeletingId(uploadId)
+    try {
+      await deleteUpload(uploadId)
+      setUploads(prev => prev.filter(u => u._id !== uploadId))
+      setProcessingIds(prev => { const next = new Set(prev); next.delete(uploadId); return next })
+      toast.success('Upload deleted.')
+    } catch {
+      toast.error('Failed to delete upload.')
+    } finally {
+      setDeletingId(null)
+      setConfirmDeleteId(null)
     }
   }
 
@@ -203,6 +221,39 @@ export function UploadPanel({ onUploadComplete, compact = false }: UploadPanelPr
                   )}
                   {upload.error_message && (
                     <p className="text-xs text-destructive mt-1">{upload.error_message}</p>
+                  )}
+                </div>
+
+                {/* Delete button */}
+                <div className="shrink-0">
+                  {confirmDeleteId === upload._id ? (
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="h-7 px-2 text-xs"
+                        disabled={deletingId === upload._id}
+                        onClick={() => handleDeleteUpload(upload._id)}
+                      >
+                        {deletingId === upload._id ? <Loader2 className="size-3 animate-spin" /> : 'Delete'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setConfirmDeleteId(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDeleteId(upload._id)}
+                      className="p-1.5 rounded hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-colors"
+                      title="Delete upload"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                   )}
                 </div>
               </div>

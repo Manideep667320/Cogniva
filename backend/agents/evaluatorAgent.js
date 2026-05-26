@@ -1,4 +1,4 @@
-import { Agent } from 'lyzr-adk';
+import { Agent } from './llmConfig.js';
 import { getGeminiModel } from './llmConfig.js';
 
 export const createEvaluatorAgent = () => {

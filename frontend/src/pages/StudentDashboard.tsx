@@ -10,7 +10,7 @@ import { MasteryProgress } from '@/components/dashboard/MasteryProgress'
 import { WeakTopicsPanel } from '@/components/dashboard/WeakTopicsPanel'
 import { RecommendationPanel } from '@/components/dashboard/RecommendationPanel'
 import { useAuth } from '@/contexts/AuthContext'
-import { getSkillTrees, getCourses, getChatHistory } from '@/lib/api'
+import { getSkillTrees, getEnrolledCourses, getChatHistory } from '@/lib/api'
 import { CourseCard } from '@/components/courses/CourseCard'
 import { useNavigate } from 'react-router-dom'
 import { LearningHeatmap } from '@/components/dashboard/LearningHeatmap'
@@ -62,6 +62,7 @@ export function StudentDashboard() {
   const [courses, setCourses] = useState<Course[]>([])
   const [treeCount, setTreeCount] = useState(0)
   const [chatHistory, setChatHistory] = useState<LocalMessage[]>([])
+  const [streak, setStreak] = useState(0)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -74,13 +75,43 @@ export function StudentDashboard() {
         const trees = await getSkillTrees()
         setTreeCount(trees.length)
 
-        // Load published courses
-        const courseData = await getCourses()
+        // Load enrolled courses
+        const courseData = await getEnrolledCourses()
         setCourses(courseData.slice(0, 3)) // Show top 3 for dashboard
 
-        // Load chat history for heatmap
+        // Load chat history for heatmap and recent list
         const history = await getChatHistory()
         setChatHistory(history)
+        
+        // Show 5 most recent in the list
+        setRecentChats(history.slice(0, 5))
+
+        // Calculate active learning streak
+        if (history.length > 0) {
+          const dates = [...new Set<string>(history.map((item: any) => new Date(item.created_at).toDateString()))]
+            .map((dateStr: string) => new Date(dateStr).getTime())
+            .sort((a, b) => b - a) // Descending (newest first)
+
+          let currentStreak = 0
+          const today = new Date(new Date().toDateString()).getTime()
+          const msInDay = 86400000
+
+          let checkDate = today
+          // If no activity today, check if streak is kept alive from yesterday
+          if (dates[0] !== today) {
+            checkDate = today - msInDay
+          }
+
+          for (const d of dates) {
+            if (d === checkDate) {
+              currentStreak++
+              checkDate -= msInDay
+            } else if (d < checkDate) {
+              break // gap found, streak broken
+            }
+          }
+          setStreak(currentStreak)
+        }
       } catch (err) {
         console.error('Failed to load dashboard data:', err)
       }
@@ -128,7 +159,7 @@ export function StudentDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard icon={GitBranch} label="Skill Trees" value={treeCount} trend="Upload notes to create" />
         <StatCard icon={MessageSquare} label="AI Conversations" value={chatHistory.length} trend="All time" />
-        <StatCard icon={TrendingUp} label="Learning Streak" value="3 days" trend="Keep it up!" />
+        <StatCard icon={TrendingUp} label="Learning Streak" value={`${streak} days`} trend={streak > 0 ? 'Keep it up!' : 'Start learning today'} />
       </div>
 
       {/* Profile Heatmap Section */}
@@ -142,9 +173,9 @@ export function StudentDashboard() {
       </div>
 
       {/* Main content grid */}
-      <div className={`grid grid-cols-1 ${treeCount > 0 ? 'lg:grid-cols-3' : ''} gap-4`}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left column: Quick actions + Mastery */}
-        <div className={`${treeCount > 0 ? 'lg:col-span-2' : ''} space-y-4`}>
+        <div className="lg:col-span-2 space-y-4">
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Link to="/skill-tree" className="group block">
@@ -248,8 +279,8 @@ export function StudentDashboard() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {recentChats.map((chat) => (
-                    <div key={chat.id} className="flex items-start gap-3 rounded-lg border border-border/60 p-3 hover:bg-muted/50 transition-colors">
+                  {recentChats.map((chat: any) => (
+                    <div key={chat._id || chat.id} className="flex items-start gap-3 rounded-lg border border-border/60 p-3 hover:bg-muted/50 transition-colors">
                       <div className="flex size-8 shrink-0 items-center justify-center rounded-md brand-gradient">
                         <MessageSquare className="size-3.5 text-white" />
                       </div>
@@ -273,65 +304,68 @@ export function StudentDashboard() {
         </div>
 
         {/* Right column: Recommendations + Weak topics + Courses */}
-        {treeCount > 0 ? (
-          <div className="space-y-4">
-            <RecommendationPanel />
-            <WeakTopicsPanel />
+        <div className="space-y-4">
+          <RecommendationPanel />
+          <WeakTopicsPanel />
 
-            {/* Explore Courses Section (Sidebar) */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between px-1">
-                <div>
-                  <h3 className="text-sm font-bold">Explore Courses</h3>
-                </div>
-                <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
-                  <Link to="/courses">View all</Link>
-                </Button>
+          {/* Enrolled Courses Section (Sidebar) */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between px-1">
+              <div>
+                <h3 className="text-sm font-bold">My Enrolled Courses</h3>
               </div>
-              
-              {loading ? (
-                <div className="space-y-2">
-                  {[1, 2].map((i) => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
-                </div>
-              ) : courses.length === 0 ? (
-                <div className="text-center py-4 border border-dashed rounded-lg">
-                  <p className="text-[10px] text-muted-foreground">No courses available</p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {courses.slice(0, 2).map((course: Course) => (
-                    <CourseCard 
-                      key={course._id || course.id} 
-                      course={course} 
-                      onView={() => navigate('/courses')}
-                    />
-                  ))}
-                </div>
-              )}
+              <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
+                <Link to="/courses">View all</Link>
+              </Button>
             </div>
-          </div>
-        ) : (
-          <Card className="border-border/60 shadow-sm border-l-4 border-l-primary/60 lg:col-span-3">
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center text-center gap-3 py-4">
-                <div className="flex size-12 items-center justify-center rounded-xl brand-gradient">
-                  <Upload className="size-6 text-white" />
-                </div>
-                <div>
-                  <p className="font-semibold">Get Started with Skill Trees</p>
-                  <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                    Upload your study notes to generate personalized skill trees, track mastery, and get AI-powered recommendations.
-                  </p>
-                </div>
-                <Button asChild className="mt-1 brand-gradient text-white border-0">
-                  <Link to="/skill-tree">
-                    <GitBranch className="size-4 mr-2" /> Create Skill Tree
-                  </Link>
+            
+            {loading ? (
+              <div className="space-y-2">
+                {[1, 2].map((i) => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
+              </div>
+            ) : courses.length === 0 ? (
+              <div className="text-center py-4 border border-dashed rounded-lg">
+                <p className="text-[10px] text-muted-foreground">No courses enrolled yet</p>
+                <Button asChild variant="link" size="sm" className="text-xs mt-1">
+                  <Link to="/courses">Browse courses</Link>
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <div className="flex flex-col gap-2">
+                {courses.slice(0, 2).map((course: Course) => (
+                  <CourseCard 
+                    key={course._id || course.id} 
+                    course={course} 
+                    onView={() => navigate('/courses')}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {treeCount === 0 && (
+            <Card className="border-border/60 shadow-sm border-l-4 border-l-primary/60">
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center text-center gap-3 py-4">
+                  <div className="flex size-12 items-center justify-center rounded-xl brand-gradient">
+                    <Upload className="size-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Get Started with Skill Trees</p>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+                      Upload your study notes to generate personalized skill trees, track mastery, and get AI-powered recommendations.
+                    </p>
+                  </div>
+                  <Button asChild className="mt-1 brand-gradient text-white border-0">
+                    <Link to="/skill-tree">
+                      <GitBranch className="size-4 mr-2" /> Create Skill Tree
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </AppLayout>
   )

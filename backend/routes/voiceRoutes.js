@@ -48,7 +48,8 @@ router.post('/command', verifyToken, upload.single('audio'), async (req, res) =>
 
     // Transcribe the voice command quickly
     const transcript = await aaiClient.transcripts.transcribe({
-      audio: filePath
+      audio: filePath,
+      speech_models: ['universal-2']
     });
 
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath); // Clean up immediately
@@ -60,25 +61,13 @@ router.post('/command', verifyToken, upload.single('audio'), async (req, res) =>
     const commandText = transcript.text;
     console.log(`Command recognized: "${commandText}"`);
 
-    // Basic Intent Routing
-    let responseText = "I heard you, but I'm not sure how to respond.";
+    // We now just return the raw transcript command.
+    // The specific page/component handling the context (like LearningPanel) 
+    // will determine how to respond to it.
     
-    // In a real app, you'd pass commandText to an LLM for intent classification
-    const lowerCmd = commandText.toLowerCase();
-    if (lowerCmd.includes('summarize') || lowerCmd.includes('lecture')) {
-      responseText = "Sure, I will generate a summary of today's lecture topics based on your semantic memory.";
-      // Trigger summary generation logic here
-    } else if (lowerCmd.includes('revision') || lowerCmd.includes('plan')) {
-      responseText = "I am creating a personalized revision plan for your weak topics now.";
-      // Trigger planner agent here
-    } else {
-      responseText = `You said: ${commandText}. How can I help you with your studies?`;
-    }
-
     res.json({
       success: true,
       command: commandText,
-      response: responseText
     });
   } catch (error) {
     console.error('Error processing voice command:', error);

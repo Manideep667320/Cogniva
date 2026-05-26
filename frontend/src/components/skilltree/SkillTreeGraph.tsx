@@ -243,8 +243,9 @@ export function SkillTreeGraph({ nodes: skillNodes, title, onNodeClick, classNam
   }
 
   return (
-    <div className={`w-full h-full relative ${className} bg-[#020617]`}>
-      <ReactFlow
+    <div className={`w-full h-full relative ${className} bg-[#020617]`} style={{ minHeight: '400px' }}>
+      <div className="absolute inset-0">
+        <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -316,7 +317,8 @@ export function SkillTreeGraph({ nodes: skillNodes, title, onNodeClick, classNam
           maskColor="rgba(0,0,0,0.3)"
           style={{ height: 120, width: 180 }}
         />
-      </ReactFlow>
+        </ReactFlow>
+      </div>
     </div>
   )
 }

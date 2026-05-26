@@ -1,4 +1,4 @@
-import { Agent, Task, LinearSyncPipeline } from 'lyzr-adk';
+import { Agent } from './llmConfig.js';
 import { getGeminiModel } from './llmConfig.js';
 import Flashcard from '../models/Flashcard.js';
 
@@ -16,10 +16,8 @@ export const createFlashcardAgent = () => {
 export const generateFlashcardsFromText = async (text, userId, sourceId = null) => {
   const agent = createFlashcardAgent();
 
-  const generateTask = new Task({
-    name: "Generate Flashcards",
-    agent: agent,
-    instructions: `
+  try {
+    const result = await agent.run(`
       Read the following lecture text and extract 3-5 key concepts into flashcards.
       Output ONLY valid JSON in this exact format:
       [
@@ -31,18 +29,8 @@ export const generateFlashcardsFromText = async (text, userId, sourceId = null) 
       
       Lecture Text:
       ${text}
-    `
-  });
-
-  const pipeline = new LinearSyncPipeline({
-    name: "Flashcard Pipeline",
-    completion_message: "Flashcards Generated",
-    tasks: [generateTask]
-  });
-
-  try {
-    const result = await pipeline.execute();
-    const rawOutput = result[0].task_output;
+    `);
+    const rawOutput = typeof result === 'string' ? result : (result.response || JSON.stringify(result));
     
     // Clean up potential markdown formatting
     const cleanedOutput = rawOutput.replace(/```json/g, '').replace(/```/g, '').trim();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Plus, Search, BookOpen, Loader as Loader2, X, Trash2, Video, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,9 +12,10 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/contexts/AuthContext'
-import { getCourses, createCourse, deleteCourse } from '@/lib/api'
+import { getCourses, createCourse, updateCourse, deleteCourse, generateCourse, enrollCourse, getEnrollmentStatus } from '@/lib/api'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { CourseCard } from '@/components/courses/CourseCard'
+import { Sparkles, Lock, Unlock } from 'lucide-react'
 
 interface VideoInfo {
   title: string
@@ -52,6 +53,7 @@ export function CoursesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
 
@@ -66,6 +68,15 @@ export function CoursesPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // AI Architect State
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
+
+  // Enrollment State
+  const [isEnrolled, setIsEnrolled] = useState(false)
+  const [enrollLoading, setEnrollLoading] = useState(false)
+
   const addVideoField = () => setFormVideos([...formVideos, { title: '', url: '' }])
   const removeVideoField = (index: number) => setFormVideos(formVideos.filter((_, i) => i !== index))
   const updateVideoField = (index: number, field: keyof VideoInfo, value: string) => {
@@ -74,7 +85,7 @@ export function CoursesPage() {
     setFormVideos(newVideos)
   }
 
-  async function loadCourses() {
+  const loadCourses = useCallback(async () => {
     setLoading(true)
     try {
       const data = await getCourses()
@@ -83,11 +94,11 @@ export function CoursesPage() {
       console.error('Failed to load courses:', err)
     }
     setLoading(false)
-  }
+  }, [])
 
   useEffect(() => {
     if (user) loadCourses()
-  }, [user, isFaculty])
+  }, [user, isFaculty, loadCourses])
 
   const filtered = courses.filter((c) =>
     c.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -104,6 +115,7 @@ export function CoursesPage() {
     setFormTags('')
     setFormVideos([{ title: '', url: '' }])
     setFormError(null)
+    setEditingCourseId(null)
     setCreateOpen(true)
   }
 
@@ -119,7 +131,7 @@ export function CoursesPage() {
     const videos = formVideos.filter(v => v.title.trim() && v.url.trim())
     
     try {
-      await createCourse({
+      const payload = {
         title: formTitle.trim(),
         description: formDesc.trim(),
         content: formContent.trim(),
@@ -127,13 +139,19 @@ export function CoursesPage() {
         duration_hours: parseInt(formHours) || 0,
         tags,
         videos,
-      })
+      }
+      if (editingCourseId) {
+        await updateCourse(editingCourseId, payload)
+      } else {
+        await createCourse(payload)
+      }
       setFormLoading(false)
       setCreateOpen(false)
+      setEditingCourseId(null)
       loadCourses()
     } catch (error: any) {
       setFormLoading(false)
-      setFormError(error?.message || 'Failed to create course')
+      setFormError(error?.message || 'Failed to save course')
     }
   }
 
@@ -150,15 +168,69 @@ export function CoursesPage() {
     setDeleteLoading(false)
   }
 
+  async function handleGenerateCourse(e: React.FormEvent) {
+    e.preventDefault()
+    if (!aiPrompt.trim()) return
+    
+    setAiLoading(true)
+    try {
+      const data = await generateCourse(aiPrompt)
+      setFormTitle(data.title || '')
+      setFormDesc(data.description || '')
+      setFormContent(data.content || '')
+      if (['Beginner', 'Intermediate', 'Advanced'].includes(data.level)) {
+        setFormLevel(data.level)
+      }
+      setFormHours(data.duration_hours?.toString() || '4')
+      setFormTags(data.tags?.join(', ') || '')
+      setAiOpen(false)
+      setCreateOpen(true) // Open the create modal with prefilled data
+    } catch (err: any) {
+      alert(err.message || 'Failed to generate course')
+    }
+    setAiLoading(false)
+  }
+
+  async function handleEnroll(courseId: string) {
+    setEnrollLoading(true)
+    try {
+      await enrollCourse(courseId)
+      setIsEnrolled(true)
+    } catch (err: any) {
+      alert(err.message || 'Failed to enroll')
+    }
+    setEnrollLoading(false)
+  }
+
+  // When a student views a course, check their enrollment status
+  async function handleViewCourse(c: Course) {
+    setSelectedCourse(c)
+    setViewOpen(true)
+    setIsEnrolled(false)
+    if (!isFaculty && c._id) {
+      try {
+        const status = await getEnrollmentStatus(c._id)
+        setIsEnrolled(status.is_enrolled)
+      } catch (err) {
+        console.error(err)
+      }
+    }
+  }
+
   return (
     <AppLayout
       title={isFaculty ? 'Manage Courses' : 'Course Library'}
       description={isFaculty ? 'Create and manage your courses' : 'Explore available courses'}
       headerRight={
         isFaculty && (
-          <Button size="sm" onClick={openCreate} className="brand-gradient text-white border-0">
-            <Plus className="size-4 mr-1" /> New Course
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => setAiOpen(true)} className="bg-primary/10 text-primary hover:bg-primary/20 border-0">
+              <Sparkles className="size-4 mr-1" /> AI Architect
+            </Button>
+            <Button size="sm" onClick={openCreate} className="brand-gradient text-white border-0">
+              <Plus className="size-4 mr-1" /> New Course
+            </Button>
+          </div>
         )
       }
     >
@@ -190,9 +262,14 @@ export function CoursesPage() {
             </p>
           </div>
           {isFaculty && (
-            <Button onClick={openCreate} className="brand-gradient text-white border-0">
-              <Plus className="size-4 mr-2" /> Create Course
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setAiOpen(true)} variant="outline" className="text-primary border-primary/20">
+                <Sparkles className="size-4 mr-2" /> AI Generate
+              </Button>
+              <Button onClick={openCreate} className="brand-gradient text-white border-0">
+                <Plus className="size-4 mr-2" /> Create Course
+              </Button>
+            </div>
           )}
         </div>
       ) : (
@@ -202,7 +279,7 @@ export function CoursesPage() {
               key={course._id || course.id}
               course={course}
               isFaculty={isFaculty}
-              onView={(c: Course) => { setSelectedCourse(c); setViewOpen(true) }}
+              onView={(c: Course) => handleViewCourse(c)}
             />
           ))}
         </div>
@@ -237,39 +314,87 @@ export function CoursesPage() {
                 ))}
               </div>
               <Separator />
-              <ScrollArea className="max-h-80 pr-2">
-                <div className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
-                  {selectedCourse.content || 'No detailed content has been added yet.'}
-                </div>
-              </ScrollArea>
 
-              {selectedCourse.videos && selectedCourse.videos.length > 0 && (
-                <div className="grid gap-3 pt-2">
-                  <div className="flex items-center gap-2">
-                    <Video className="size-4 text-primary" />
-                    <h4 className="text-sm font-semibold">Video Resources</h4>
-                  </div>
-                  <div className="grid gap-2">
-                    {selectedCourse.videos.map((video, idx) => (
-                      <a 
-                        key={idx} 
-                        href={video.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between p-3 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors group"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium group-hover:text-primary transition-colors">{video.title}</span>
-                          {video.description && <span className="text-xs text-muted-foreground">{video.description}</span>}
-                        </div>
-                        <ArrowRight className="size-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                      </a>
-                    ))}
+              {/* Locked/Unlocked Content */}
+              {!isFaculty && !isEnrolled ? (
+                <div className="flex flex-col items-center justify-center py-10 px-4 text-center border rounded-lg bg-muted/20 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px]" />
+                  <div className="relative z-10 flex flex-col items-center gap-3">
+                    <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+                      <Lock className="size-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">Enroll to unlock</h3>
+                      <p className="text-sm text-muted-foreground max-w-sm mt-1">
+                        Get full access to the course syllabus, video lectures, and AI-generated flashcards.
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => handleEnroll(selectedCourse._id || selectedCourse.id)}
+                      disabled={enrollLoading}
+                      className="mt-2 brand-gradient text-white border-0 px-8"
+                    >
+                      {enrollLoading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Unlock className="size-4 mr-2" />}
+                      Enroll Now
+                    </Button>
                   </div>
                 </div>
+              ) : (
+                <>
+                  <ScrollArea className="max-h-80 pr-2">
+                    <div className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+                      {selectedCourse.content || 'No detailed content has been added yet.'}
+                    </div>
+                  </ScrollArea>
+
+                  {selectedCourse.videos && selectedCourse.videos.length > 0 && (
+                    <div className="grid gap-3 pt-2">
+                      <div className="flex items-center gap-2">
+                         <Video className="size-4 text-primary" />
+                        <h4 className="text-sm font-semibold">Video Resources</h4>
+                      </div>
+                      <div className="grid gap-2">
+                        {selectedCourse.videos.map((video, idx) => (
+                          <a 
+                            key={idx} 
+                            href={video.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between p-3 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors group"
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium group-hover:text-primary transition-colors">{video.title}</span>
+                              {video.description && <span className="text-xs text-muted-foreground">{video.description}</span>}
+                            </div>
+                            <ArrowRight className="size-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
+
               {isFaculty && selectedCourse.faculty_id === user?.id && (
-                <DialogFooter>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFormTitle(selectedCourse.title);
+                      setFormDesc(selectedCourse.description);
+                      setFormContent(selectedCourse.content || '');
+                      setFormLevel(selectedCourse.level);
+                      setFormHours(selectedCourse.duration_hours?.toString() || '4');
+                      setFormTags(selectedCourse.tags?.join(', ') || '');
+                      setFormVideos(selectedCourse.videos || [{ title: '', url: '' }]);
+                      setEditingCourseId(selectedCourse._id || selectedCourse.id);
+                      setViewOpen(false);
+                      setCreateOpen(true);
+                    }}
+                  >
+                    Edit Course
+                  </Button>
                   <Button
                     variant="destructive"
                     size="sm"
@@ -286,11 +411,47 @@ export function CoursesPage() {
         </DialogContent>
       </Dialog>
 
+      {/* AI Generate Dialog */}
+      <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="size-5 text-primary" />
+              AI Course Architect
+            </DialogTitle>
+            <DialogDescription>
+              Let the Lyzr agent generate a full course syllabus and metadata for you based on a simple prompt.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleGenerateCourse} className="flex flex-col gap-4 mt-2">
+            <div className="grid gap-2">
+              <Label htmlFor="ai-prompt">What should the course be about?</Label>
+              <Textarea 
+                id="ai-prompt" 
+                placeholder="e.g. Create an intermediate course on Next.js 14 App Router..." 
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                rows={4}
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAiOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={aiLoading} className="brand-gradient text-white border-0">
+                {aiLoading ? <><Loader2 className="size-4 animate-spin mr-2" /> Generating...</> : <><Sparkles className="size-4 mr-2" /> Generate</>}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Create Course Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create New Course</DialogTitle>
+            <DialogTitle>{editingCourseId ? 'Edit Course' : 'Create New Course'}</DialogTitle>
             <DialogDescription>Fill in the course details below</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreate} className="flex flex-col gap-4">
@@ -382,11 +543,11 @@ export function CoursesPage() {
               </ScrollArea>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => { setCreateOpen(false); setEditingCourseId(null); }}>
                 <X className="size-4 mr-1" /> Cancel
               </Button>
               <Button type="submit" disabled={formLoading} className="brand-gradient text-white border-0">
-                {formLoading ? <><Loader2 className="size-4 animate-spin mr-2" /> Creating...</> : <><Plus className="size-4 mr-1" /> Create Course</>}
+                {formLoading ? <><Loader2 className="size-4 animate-spin mr-2" /> {editingCourseId ? 'Saving...' : 'Creating...'}</> : <><Plus className="size-4 mr-1" /> {editingCourseId ? 'Save Changes' : 'Create Course'}</>}
               </Button>
             </DialogFooter>
           </form>

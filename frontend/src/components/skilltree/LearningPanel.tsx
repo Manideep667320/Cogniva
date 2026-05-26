@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { X, BookOpen, MessageSquare, Send, CheckCircle2, XCircle, Loader2, HelpCircle, Sparkles, Zap, Brain, AlertCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -6,8 +6,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { runAgentLoop, agentEvaluate, streamTutorMessage, sendTutorMessage } from '@/lib/api'
+import { runAgentLoop, agentEvaluate, streamTutorMessage, sendTutorMessage, getSkillContent } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
+import { useVoice } from '@/contexts/VoiceContext'
 
 interface SkillNodeData {
   id: string
@@ -32,7 +33,7 @@ interface LearningPanelProps {
   onMasteryUpdate?: () => void
 }
 
-type Phase = 'loading' | 'explain' | 'question' | 'feedback'
+type Phase = 'loading' | 'content' | 'explain' | 'question' | 'feedback'
 
 interface AgentPlan {
   difficulty: string
@@ -43,7 +44,13 @@ interface AgentPlan {
 
 export function LearningPanel({ skill, skillTreeId, onClose, onMasteryUpdate }: LearningPanelProps) {
   const { user } = useAuth()
+  const { speak, stopSpeaking, registerCommandHandler, unregisterCommandHandler } = useVoice()
   const [phase, setPhase] = useState<Phase>('loading')
+  const [skillContent, setSkillContent] = useState<{ title: string; content: string } | null>(null)
+  const [contentSections, setContentSections] = useState<string[][]>([]) // all sections
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0)      // which section we're on
+  const [paragraphs, setParagraphs] = useState<string[]>([])
+  const [activeParagraphIndex, setActiveParagraphIndex] = useState(-1)
   const [explanation, setExplanation] = useState('')
   const [question, setQuestion] = useState<any>(null)
   const [userAnswer, setUserAnswer] = useState('')
@@ -60,7 +67,65 @@ export function LearningPanel({ skill, skillTreeId, onClose, onMasteryUpdate }: 
 
   const mastery = skill.mastery_data?.mastery_score ?? skill.mastery ?? 0
 
-  // Run the agent loop when the panel loads
+  const PARAGRAPHS_PER_SECTION = 4 // how many paragraphs make one "content section"
+
+  async function loadContent() {
+    setLoading(true)
+    setPhase('loading')
+    try {
+      const contentData = await getSkillContent(skillTreeId, skill.id)
+      setSkillContent(contentData)
+      
+      // Split content into paragraphs
+      const allParas = contentData.content.split('\n\n').filter((p: string) => p.trim().length > 0)
+
+      // Group paragraphs into sections
+      const sections: string[][] = []
+      for (let i = 0; i < allParas.length; i += PARAGRAPHS_PER_SECTION) {
+        sections.push(allParas.slice(i, i + PARAGRAPHS_PER_SECTION))
+      }
+      if (sections.length === 0) sections.push([contentData.content])
+
+      // Resume from saved progress if available
+      const savedIndexStr = localStorage.getItem(`cogniva_progress_${skillTreeId}_${skill.id}`)
+      const savedIndex = savedIndexStr ? parseInt(savedIndexStr, 10) : 0
+      const validIndex = (savedIndex >= 0 && savedIndex < sections.length) ? savedIndex : 0
+
+      setContentSections(sections)
+      setCurrentSectionIndex(validIndex)
+      setParagraphs(sections[validIndex])
+      setActiveParagraphIndex(0)
+      setPhase('content')
+    } catch {
+      const fallbackMsg = 'Failed to load content. You can proceed to the quiz.'
+      setSkillContent({ title: skill.name, content: fallbackMsg })
+      setContentSections([[fallbackMsg]])
+      setCurrentSectionIndex(0)
+      setParagraphs([fallbackMsg])
+      setActiveParagraphIndex(0)
+      setPhase('content')
+    }
+    setLoading(false)
+  }
+
+  // Load a specific section by index (used after quiz to advance)
+  function loadSection(sectionIdx: number) {
+    stopSpeaking()
+    setUserAnswer('')
+    setFeedback(null)
+    setQuestion(null)
+    setChatMessages([])
+    
+    // Save progress
+    localStorage.setItem(`cogniva_progress_${skillTreeId}_${skill.id}`, String(sectionIdx))
+    
+    setCurrentSectionIndex(sectionIdx)
+    setParagraphs(contentSections[sectionIdx])
+    setActiveParagraphIndex(0)
+    setPhase('content')
+  }
+
+  // Run the agent loop to start quiz
   async function runAgent() {
     setLoading(true)
     setPhase('loading')
@@ -243,9 +308,97 @@ export function LearningPanel({ skill, skillTreeId, onClose, onMasteryUpdate }: 
     }
   }
 
-  // Auto-run agent on first mount
-  if (phase === 'loading' && !loading && chatMessages.length === 0) {
-    runAgent()
+  // Voice playback effect
+  useEffect(() => {
+    if (phase !== 'content' || activeParagraphIndex < 0 || activeParagraphIndex >= paragraphs.length) return
+    
+    // Play the current paragraph
+    speak(paragraphs[activeParagraphIndex], () => {
+      // On end, move to next paragraph if not interrupted
+      setActiveParagraphIndex((prev) => {
+        if (prev === activeParagraphIndex) {
+          const next = prev + 1
+          if (next >= paragraphs.length) {
+            // Finished reading all paragraphs -> move to quiz
+            runAgent()
+            return -1
+          }
+          return next
+        }
+        return prev
+      })
+    })
+
+    return () => {
+      stopSpeaking()
+    }
+  }, [activeParagraphIndex, phase, paragraphs]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Voice doubt handler
+  useEffect(() => {
+    registerCommandHandler(async (transcript: string) => {
+      // Pause reading
+      stopSpeaking()
+      
+      const msg = transcript.trim()
+      
+      // Do not change phase to explain or show chat messages.
+      // Just stream the tutor response silently and have the Orb speak it.
+      try {
+        let accumulated = ''
+        await streamTutorMessage({
+          message: msg,
+          skill_id: skill.id,
+          skill_tree_id: skillTreeId,
+          onChunk: (chunk) => {
+            accumulated += chunk
+          },
+          onDone: () => {
+            // Speak the answer automatically
+            speak(accumulated, () => {
+              // Optionally return to lesson after answering
+              // Force resume of the current paragraph
+              if (phase === 'content' && activeParagraphIndex >= 0 && activeParagraphIndex < paragraphs.length) {
+                // To trigger the effect again, we can just call speak manually here, 
+                // or briefly set activeParagraphIndex to a dummy value and back.
+                // It's safer to just let them click it again, or we can use a small timeout:
+                setTimeout(() => {
+                  setActiveParagraphIndex(prev => prev); // Wait, setting to same value doesn't trigger effect.
+                  // We'll just manually call speak to resume the paragraph flow.
+                  speak(paragraphs[activeParagraphIndex], () => {
+                    setActiveParagraphIndex((prev) => {
+                      if (prev === activeParagraphIndex) {
+                        const next = prev + 1
+                        if (next >= paragraphs.length) {
+                          runAgent()
+                          return -1
+                        }
+                        return next
+                      }
+                      return prev
+                    })
+                  })
+                }, 500);
+              }
+            })
+          },
+          onError: () => {
+            speak("Sorry, I could not process your voice doubt.")
+          },
+        })
+      } catch {
+        speak("Sorry, I could not process your voice doubt.")
+      }
+    })
+
+    return () => {
+      unregisterCommandHandler()
+    }
+  }, [skill.id, skillTreeId, chatMessages]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-load content on first mount
+  if (phase === 'loading' && !loading && !skillContent && chatMessages.length === 0) {
+    loadContent()
   }
 
   const difficultyColors: Record<string, string> = {
@@ -280,23 +433,6 @@ export function LearningPanel({ skill, skillTreeId, onClose, onMasteryUpdate }: 
         </Button>
       </div>
 
-      {/* Agent plan banner */}
-      {agentPlan && phase === 'explain' && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          className="border-b border-border/60 bg-primary/5 px-4 py-2.5"
-        >
-          <div className="flex items-start gap-2">
-            <Brain className="size-4 text-primary shrink-0 mt-0.5" />
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-primary">Agent Plan</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{agentPlan.reasoning}</p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
       {/* Content */}
       <ScrollArea className="flex-1 p-4 min-h-0">
         {phase === 'loading' && (
@@ -310,6 +446,35 @@ export function LearningPanel({ skill, skillTreeId, onClose, onMasteryUpdate }: 
             <div className="text-center">
               <p className="text-sm font-medium">Agent is thinking...</p>
               <p className="text-xs text-muted-foreground mt-1">Diagnosing → Planning → Generating</p>
+            </div>
+          </div>
+        )}
+
+        {phase === 'content' && skillContent && (
+          <div className="space-y-6">
+            <div className="prose prose-sm prose-invert max-w-none">
+              <h2 className="text-xl font-bold mb-4">{skillContent.title}</h2>
+              <div className="space-y-4">
+                {paragraphs.map((p, idx) => (
+                  <p 
+                    key={idx} 
+                    className={`leading-relaxed transition-colors duration-300 ${
+                      idx === activeParagraphIndex 
+                        ? 'text-primary font-medium bg-primary/5 p-2 rounded border-l-2 border-primary' 
+                        : idx < activeParagraphIndex 
+                          ? 'text-slate-400' 
+                          : 'text-slate-200'
+                    }`}
+                  >
+                    {p}
+                  </p>
+                ))}
+              </div>
+            </div>
+            <div className="pt-4 border-t border-border/50">
+              <Button onClick={runAgent} className="w-full brand-gradient text-white border-0 shadow-lg hover:shadow-indigo-500/25 transition-all duration-300">
+                <HelpCircle className="size-4 mr-2" /> Take Quiz
+              </Button>
             </div>
           </div>
         )}
@@ -330,8 +495,9 @@ export function LearningPanel({ skill, skillTreeId, onClose, onMasteryUpdate }: 
                       <Sparkles className="size-3.5 text-white" />
                     </div>
                   )}
-                  <div className={`
-                    rounded-2xl px-4 py-3 text-sm max-w-[85%] whitespace-pre-wrap leading-relaxed
+                  <div 
+                    className={`
+                    rounded-2xl px-4 py-3 text-sm max-w-[85%] leading-relaxed
                     ${msg.role === 'user'
                       ? 'bg-primary text-primary-foreground rounded-tr-sm'
                       : 'bg-muted border border-border/60 rounded-tl-sm'
@@ -340,9 +506,14 @@ export function LearningPanel({ skill, skillTreeId, onClose, onMasteryUpdate }: 
                       ? 'after:content-["▊"] after:animate-pulse after:ml-0.5 after:text-primary'
                       : ''
                     }
-                  `}>
-                    {msg.content}
-                  </div>
+                  `}
+                    dangerouslySetInnerHTML={{ 
+                      __html: msg.content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/\n/g, '<br/>') 
+                    }}
+                  />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -488,13 +659,13 @@ export function LearningPanel({ skill, skillTreeId, onClose, onMasteryUpdate }: 
               </div>
             </div>
 
-            {/* Profile update indicator */}
+            {/* Profile & XP update indicator */}
             {feedback.profile && (
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
                 <p className="text-xs font-medium text-primary mb-1 flex items-center gap-1">
                   <Brain className="size-3" /> Profile Updated
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mb-2">
                   <Badge variant="outline" className="text-[10px]">
                     Speed: {feedback.profile.learning_speed}
                   </Badge>
@@ -505,15 +676,39 @@ export function LearningPanel({ skill, skillTreeId, onClose, onMasteryUpdate }: 
                     Engagement: {feedback.profile.engagement_score}%
                   </Badge>
                 </div>
+                {feedback.xp_gained > 0 && (
+                  <div className="mt-2 flex items-center gap-1 text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded-md w-fit text-xs border border-emerald-500/20">
+                    <Zap className="size-3" /> +{feedback.xp_gained} XP Earned!
+                  </div>
+                )}
               </div>
             )}
 
             {/* Actions */}
             <div className="flex gap-2">
-              <Button onClick={() => { setPhase('loading'); setChatMessages([]); setUserAnswer(''); runAgent() }} variant="outline" className="flex-1">
-                <HelpCircle className="size-4 mr-2" /> Next Session
-              </Button>
-              <Button onClick={() => { setPhase('explain'); setChatInput(''); }} className="flex-1 brand-gradient text-white border-0">
+              {currentSectionIndex + 1 < contentSections.length ? (
+                // More sections to go — advance to next
+                <Button
+                  onClick={() => loadSection(currentSectionIndex + 1)}
+                  className="flex-1 brand-gradient text-white border-0"
+                >
+                  <BookOpen className="size-4 mr-2" />
+                  Next Section ({currentSectionIndex + 2}/{contentSections.length})
+                </Button>
+              ) : (
+                // All sections done — show completion
+                <Button
+                  onClick={() => {
+                    localStorage.removeItem(`cogniva_progress_${skillTreeId}_${skill.id}`)
+                    onClose()
+                  }}
+                  className="flex-1 brand-gradient text-white border-0"
+                >
+                  <CheckCircle2 className="size-4 mr-2" />
+                  Node Complete! 🎉
+                </Button>
+              )}
+              <Button onClick={() => { setPhase('explain'); setChatInput(''); }} variant="outline" className="flex-1">
                 <MessageSquare className="size-4 mr-2" /> Ask Tutor
               </Button>
             </div>
