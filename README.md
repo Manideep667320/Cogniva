@@ -44,7 +44,7 @@ graph TD
 | **Frontend** | React 19, TypeScript, Vite, Tailwind CSS 4, Recharts, cmdk, shadcn/ui |
 | **Backend** | Node.js, Express.js, MongoDB (Mongoose) |
 | **AI Agents** | Lyzr ADK, Gemini/OpenAI (LLM Core) |
-| **Vector DB** | ChromaDB (Semantic Memory, RAG) |
+| **Vector DB** | MongoDB Atlas Vector Search (Semantic Memory, RAG) |
 | **Voice & Audio**| AssemblyAI, Web Audio API (MediaRecorder) |
 | **Algorithms** | FSRS (Free Spaced Repetition Scheduler) |
 
