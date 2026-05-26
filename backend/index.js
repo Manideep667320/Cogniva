@@ -16,6 +16,12 @@ import skillRoutes from './routes/skillRoutes.js'
 import agentRoutes from './routes/agentRoutes.js'
 import profileRoutes from './routes/profileRoutes.js'
 import facultyRoutes from './routes/facultyRoutes.js'
+import memoryRoutes from './routes/memoryRoutes.js'
+import lectureRoutes from './routes/lectureRoutes.js'
+import voiceRoutes from './routes/voiceRoutes.js'
+import flashcardRoutes from './routes/flashcardRoutes.js'
+import analyticsRoutes from './routes/analyticsRoutes.js'
+import planRoutes from './routes/planRoutes.js'
 
 // Load environment variables
 dotenv.config()
@@ -62,6 +68,12 @@ app.use('/api/skill-tree', skillRoutes)
 app.use('/api/agent', agentRoutes)
 app.use('/api/profile', profileRoutes)
 app.use('/api/faculty', facultyRoutes)
+app.use('/api/memory', memoryRoutes)
+app.use('/api/lecture', lectureRoutes)
+app.use('/api/voice', voiceRoutes)
+app.use('/api/flashcards', flashcardRoutes)
+app.use('/api/analytics', analyticsRoutes)
+app.use('/api/plan', planRoutes)
 
 // 404 handler
 app.use((req, res) => {

@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 import { Separator } from '@/components/ui/separator'
 import { AppSidebar } from './AppSidebar'
 import { ModeToggle } from '@/components/mode-toggle'
+import { GlobalSearch } from '@/components/GlobalSearch'
 
 interface AppLayoutProps {
     children: ReactNode
@@ -24,6 +25,7 @@ export function AppLayout({ children, title, description, headerRight }: AppLayo
                         {description && <p className="text-xs text-muted-foreground hidden sm:block">{description}</p>}
                     </div>
                     <div className="ml-auto flex items-center gap-2">
+                        <GlobalSearch />
                         {headerRight}
                         <ModeToggle />
                     </div>

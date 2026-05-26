@@ -1,7 +1,8 @@
 import diagnosticService from './diagnosticService.js'
-import plannerService from './plannerService.js'
 import evaluatorService from './evaluatorService.js'
 import personalizationService from './personalizationService.js'
+import { runPlannerTask } from '../agents/plannerAgent.js'
+import { runTutorTask } from '../agents/tutorAgent.js'
 import OllamaService from './OllamaService.js'
 import skillService from './skillService.js'
 import embeddingService from './embeddingService.js'
@@ -46,18 +47,11 @@ class AgentService {
     const learningProfile = await personalizationService.getProfile(userId)
     timings.profile = Date.now() - t2
 
-    // ─── Step 3: Plan ───────────────────────────────
+    // ─── Step 3: Plan (via Lyzr Planner Agent) ──────────
     const t3 = Date.now()
     let plan
     try {
-      // If a specific skill was requested, override focus
-      if (skillId) {
-        const targetSkill = this._findSkillInDiagnosis(diagnosis, skillId)
-        if (targetSkill) {
-          diagnosis.focusAreas = [targetSkill, ...diagnosis.focusAreas.filter(f => f.skill_id !== skillId)]
-        }
-      }
-      plan = plannerService.plan(diagnosis, learningProfile)
+      plan = await runPlannerTask(diagnosis, learningProfile, skillId)
       timings.plan = Date.now() - t3
     } catch (error) {
       console.error('❌ [AgentService] Planning failed:', error.message)
@@ -74,16 +68,17 @@ class AgentService {
       }
     }
 
-    // ─── Step 4: Teach (Generate Explanation) ────────
+    // ─── Step 4: Teach (via Lyzr Tutor Agent) ──────────
     const t4 = Date.now()
     let explanation
     try {
-      explanation = await this._generateExplanation(
-        userId,
-        skillTreeId,
-        plan.selectedSkill,
+      const context = await this._getContext(userId, skillTreeId, plan.selectedSkill.skill_name)
+      explanation = await runTutorTask(
+        plan.selectedSkill.skill_name,
+        plan.selectedSkill.description || '',
         plan.difficulty,
-        plan.approachType
+        plan.approachType,
+        context
       )
       timings.teach = Date.now() - t4
     } catch (error) {

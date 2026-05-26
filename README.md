@@ -1,51 +1,52 @@
-# 🎓 Cogniva - Agentic AI Learning Platform
+# 🎓 Cogniva - Persistent Academic Intelligence Layer
 
-> **Revolutionizing Education with Agentic AI, Dynamic Skill Trees, and Personalized Learning Paths.**
+> **Revolutionizing Education with Multi-Agent AI, Semantic Memory, Spaced Repetition, and Autonomous Learning Paths.**
 
 [![Project Status: Production-Ready](https://img.shields.io/badge/Status-Production--Ready-success?style=for-the-badge)](https://github.com/Manideep667320/Cogniva)
-[![Tech Stack: Fullstack](https://img.shields.io/badge/Stack-React%20%7C%20Node%20%7C%20MongoDB%20%7C%20Ollama-blue?style=for-the-badge)](https://github.com/Manideep667320/Cogniva)
+[![Tech Stack: Fullstack](https://img.shields.io/badge/Stack-React%20%7C%20Node%20%7C%20MongoDB%20%7C%20ChromaDB%20%7C%20Lyzr-blue?style=for-the-badge)](https://github.com/Manideep667320/Cogniva)
 
 ---
 
 ## 📋 Overview
 
-Cogniva is a next-generation AI learning platform designed to provide students with a personalized, visual, and interactive educational experience. By combining **Agentic AI** with **Dynamic Skill Trees**, Cogniva helps learners navigate complex subjects through structured paths while receiving real-time guidance from a private AI tutor.
+Cogniva has evolved beyond a simple AI tutor into a **Persistent Academic Intelligence Layer**. By combining **Multi-Agent Orchestration**, **Global Semantic Memory**, and **Adaptive Spaced Repetition**, Cogniva autonomously maps out and optimizes the student's entire educational journey.
 
 ### 🌟 Key Features
 
-- 🤖 **Agentic AI Tutor**: A sophisticated multi-stage agent (Diagnose → Plan → Teach → Evaluate) that adapts to your learning pace.
+- 🧠 **Multi-Agent Orchestration (Lyzr ADK)**: A decentralized system of specialized agents (Tutor, Planner, Flashcard, Memory, and Evaluator) communicating to optimize learning.
+- 🗣️ **Voice-First Interface (AssemblyAI)**: Hands-free learning with real-time lecture transcription, semantic segmentation, and voice-command intent routing.
+- 🔍 **Global Semantic Search**: A universal `Cmd+K` command palette powered by ChromaDB, enabling semantic queries across your entire academic history (lectures, notes, chats).
+- 📈 **Adaptive Spaced Repetition**: Integrated `ts-fsrs` algorithm paired with LLM-generated flashcards to dynamically target and eliminate conceptual weaknesses.
+- 📊 **Comprehensive Academic Analytics**: Beautiful, interactive time-series visualizations (via Recharts) tracking cognitive load, learning velocity, and revision consistency.
+- 🗓️ **Autonomous Study Planning**: An intelligent background agent that continuously analyzes your weak spots to mathematically construct an optimized 7-day study calendar.
 - 🌳 **Dynamic Skill Trees**: Visualized learning paths that show progress and unlockable topics using React Flow.
-- 🎓 **Multi-Role Support**: 
-  - **Students**: Track progress, chat with AI, and complete courses.
-  - **Faculty**: Create and manage high-fidelity courses with rich content.
-- 📤 **Intelligent RAG Pipeline**: Upload documents to provide your AI tutor with specific domain knowledge.
-- 👤 **Personalized Profiles**: AI-driven learning style analysis and difficulty adjustment.
-- 📡 **Real-time Interaction**: Streaming SSE (Server-Sent Events) for instant AI feedback.
 
 ---
 
 ## 🏗️ Architecture
 
-Cogniva follows a decoupled, service-oriented architecture designed for scalability and local-first AI privacy.
+Cogniva follows a highly decoupled, service-oriented architecture designed for scalability, deep memory retention, and autonomous AI processing.
 
 ```mermaid
 graph TD
-    User((User)) <--> Frontend[Frontend - React/Vite]
+    User((User)) <--> Frontend[Frontend - React/Vite/cmdk]
     Frontend <--> Backend[Backend - Node/Express]
-    Backend <--> DB[(MongoDB)]
-    Backend <--> Ollama[Ollama AI - Local/Cloud]
-    Backend <--> Firebase[Firebase Auth]
+    Backend <--> MongoDB[(MongoDB - Relational)]
+    Backend <--> ChromaDB[(ChromaDB - Vector Memory)]
+    Backend <--> Lyzr[Lyzr ADK - Multi-Agent Framework]
+    Backend <--> AAI[AssemblyAI - Voice/Transcripts]
 ```
 
 ### 🛠️ Tech Stack
 
 | Component | Technology |
 |-----------|-------------|
-| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS 4, Framer Motion, shadcn/ui |
-| **Backend** | Node.js, Express.js, MongoDB (Mongoose), JWT |
-| **AI/LLM** | Ollama (Local LLM), SSE Streaming, RAG Pipeline |
-| **Authentication** | Firebase Auth / JWT Integration |
-| **Styling** | Modern Aesthetics (Glassmorphism, Dark Mode) |
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS 4, Recharts, cmdk, shadcn/ui |
+| **Backend** | Node.js, Express.js, MongoDB (Mongoose) |
+| **AI Agents** | Lyzr ADK, Gemini/OpenAI (LLM Core) |
+| **Vector DB** | ChromaDB (Semantic Memory, RAG) |
+| **Voice & Audio**| AssemblyAI, Web Audio API (MediaRecorder) |
+| **Algorithms** | FSRS (Free Spaced Repetition Scheduler) |
 
 ---
 
@@ -55,8 +56,9 @@ graph TD
 
 - **Node.js 18+**
 - **MongoDB** (Atlas or Local)
-- **Ollama** (for AI features)
-- **Firebase Project** (for authentication)
+- **ChromaDB** (Running locally via Docker or managed)
+- **AssemblyAI API Key** (for Voice features)
+- **Gemini/OpenAI API Key** (for Lyzr Agents)
 
 ### Installation
 
@@ -66,19 +68,27 @@ graph TD
    cd Cogniva
    ```
 
-2. **Setup Backend**:
-   ```bash
-   cd backend
-   npm install
-   cp .env.example .env # Update with your credentials
-   npm run dev
+2. **Environment Variables**:
+   Create a `.env` file in the `backend/` directory based on `.env.example`:
+   ```env
+   PORT=8000
+   MONGO_URI=mongodb://localhost:27017/cogniva
+   JWT_SECRET=your_secret
+   GEMINI_API_KEY=your_gemini_key
+   ASSEMBLYAI_API_KEY=your_aai_key
+   CHROMA_HOST=localhost
+   CHROMA_PORT=8000
    ```
 
-3. **Setup Frontend**:
+3. **Install Dependencies (Root Workspace)**:
+   We've included a handy script to install dependencies across the entire monorepo simultaneously:
    ```bash
-   cd ../frontend
-   npm install
-   # Create .env and set VITE_API_URL=http://localhost:8000
+   npm run install:all
+   ```
+
+4. **Run the Full Stack Locally**:
+   Using `concurrently`, you can boot up both the Vite frontend and Nodemon backend with a single command from the root directory:
+   ```bash
    npm run dev
    ```
 
@@ -90,35 +100,33 @@ To deploy Cogniva in a production environment, ensure the following configuratio
 
 ### 1. Security
 - [ ] **HTTPS/SSL**: Use a reverse proxy (Nginx/Caddy) for SSL termination.
-- [ ] **Environment Secrets**: Use a secrets manager (AWS Secrets Manager / GCP Secret Manager).
+- [ ] **Environment Secrets**: Use a secrets manager (AWS/GCP).
 - [ ] **JWT Hardening**: Change the default `JWT_SECRET` to a cryptographically strong key.
-- [ ] **CORS Settings**: Restrict `CORS_ORIGIN` to your production domain.
-- [ ] **Helmet.js**: Enable security headers in the Express backend.
 
-### 2. Scalability
-- [ ] **Database**: Migrate from local MongoDB to a managed service like **MongoDB Atlas**.
-- [ ] **AI Backend**: For high traffic, consider hosting Ollama on a GPU-optimized instance or using a cloud provider (OpenAI/Anthropic).
+### 2. Infrastructure & Scalability
+- [ ] **Database Migration**: Migrate to managed **MongoDB Atlas**.
+- [ ] **Vector Database**: Host ChromaDB persistently (e.g., AWS EC2 with volume mounts) or use a managed vector DB (Pinecone/Weaviate).
+- [ ] **Agentic Workers**: For heavy Lyzr agent workloads, consider extracting agent processing into background worker queues (BullMQ/Redis).
 - [ ] **Static Assets**: Serve the `frontend/dist` via a CDN (CloudFront/Cloudflare).
-
-### 3. Monitoring
-- [ ] **Logging**: Implement a logging service like **Winston** or **Pino**.
-- [ ] **Error Tracking**: Integrate **Sentry** for real-time frontend and backend error monitoring.
-- [ ] **Health Checks**: Monitor the `/health` endpoint for uptime status.
 
 ---
 
 ## 📂 Project Structure
 
-```
+```text
 Cogniva/
 ├── frontend/         # React application (Vite-based)
-│   ├── src/          # Source code
-│   └── public/       # Static assets
+│   ├── src/          
+│   │   ├── components/ # GlobalSearch, VoiceAvatar, UI components
+│   │   ├── pages/      # Dashboards, FlashcardStudio, StudyCalendar
+│   │   └── ...
 ├── backend/          # Node.js API service
+│   ├── agents/       # Lyzr ADK Agents (Tutor, Planner, Schedule, Flashcard)
 │   ├── controllers/  # Business logic
-│   ├── models/       # Database schemas
-│   └── services/     # AI & External integrations
-├── uploads/          # Local storage for RAG pipeline (mapped in production)
+│   ├── models/       # MongoDB schemas (StudyPlan, ReviewLog, SemanticMemory)
+│   ├── routes/       # Express routing
+│   └── services/     # ChromaDB, FSRS, AssemblyAI integrations
+├── package.json      # Root workspace (concurrently scripts)
 └── README.md         # This entry point
 ```
 

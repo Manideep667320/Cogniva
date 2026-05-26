@@ -146,7 +146,7 @@ export function StudentDashboard() {
         {/* Left column: Quick actions + Mastery */}
         <div className={`${treeCount > 0 ? 'lg:col-span-2' : ''} space-y-4`}>
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Link to="/skill-tree" className="group block">
               <Card className="border-border/60 shadow-sm hover:shadow-md transition-all hover:border-primary/30 cursor-pointer h-full">
                 <CardContent className="pt-6 pb-6">
@@ -157,6 +157,23 @@ export function StudentDashboard() {
                     <div>
                       <p className="font-semibold group-hover:text-primary transition-colors">Skill Trees</p>
                       <p className="text-xs text-muted-foreground mt-0.5">Visualize your learning path</p>
+                    </div>
+                    <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link to="/flashcards/review" className="group block">
+              <Card className="border-border/60 shadow-sm hover:shadow-md transition-all hover:border-primary/30 cursor-pointer h-full bg-primary/5">
+                <CardContent className="pt-6 pb-6">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex size-10 items-center justify-center rounded-lg brand-gradient">
+                      <TrendingUp className="size-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold group-hover:text-primary transition-colors">Start Revision</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">FSRS Flashcard deck</p>
                     </div>
                     <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                   </div>

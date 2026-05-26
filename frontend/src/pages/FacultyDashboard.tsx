@@ -162,6 +162,72 @@ export function FacultyDashboard() {
         </div>
       </div>
 
+      {/* Lecture Capture Upload */}
+      <Card className="border-border/60 shadow-sm mb-6">
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Video className="size-5 text-primary" />
+              Lecture Capture (AssemblyAI)
+            </CardTitle>
+            <CardDescription>Upload a recorded lecture (audio or video) to automatically transcribe and segment it into topics.</CardDescription>
+          </div>
+          <Button asChild variant="outline" size="sm" className="border-primary/50 text-primary hover:bg-primary/10">
+            <Link to="/flashcards/studio">Validate Flashcards <ArrowRight className="size-3 ml-1" /></Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="border-2 border-dashed border-border/60 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-muted/30 transition-colors">
+            <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 mb-4">
+              <Video className="size-6 text-primary" />
+            </div>
+            <p className="font-semibold mb-1">Drag and drop your lecture file</p>
+            <p className="text-sm text-muted-foreground mb-4">Supports MP4, MP3, WAV (Max 500MB)</p>
+            
+            <input 
+              type="file" 
+              id="lecture-upload" 
+              className="hidden" 
+              accept="audio/*,video/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                
+                alert(`Starting upload and transcription for ${file.name}...\nThis may take a few minutes depending on file size.`);
+                
+                const formData = new FormData();
+                formData.append('lecture', file);
+                
+                try {
+                  const token = localStorage.getItem('token');
+                  const res = await fetch('http://localhost:8000/api/lecture/upload', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                  });
+                  
+                  if (!res.ok) throw new Error('Upload failed');
+                  
+                  const data = await res.json();
+                  alert(data.message || 'Upload complete! The transcript is being processed and will appear in Semantic Memory.');
+                } catch (err) {
+                  console.error('Error uploading lecture:', err);
+                  alert('Error uploading lecture. Please try again.');
+                }
+                
+                // Clear the input
+                e.target.value = '';
+              }}
+            />
+            <Button asChild className="brand-gradient text-white border-0 cursor-pointer">
+              <label htmlFor="lecture-upload">Select File</label>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* My Courses */}
       <Card className="border-border/60 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-3">

@@ -114,14 +114,20 @@ class VectorService {
   /**
    * Query relevant documents from a collection
    */
-  async queryRelevant(collectionName, queryEmbedding, topK = 5) {
+  async queryRelevant(collectionName, queryEmbedding, topK = 5, where = null) {
     const collection = await this.getOrCreateCollection(collectionName)
 
     try {
-      const results = await collection.query({
+      const queryParams = {
         queryEmbeddings: [queryEmbedding],
         nResults: topK,
-      })
+      }
+      
+      if (where) {
+        queryParams.where = where;
+      }
+
+      const results = await collection.query(queryParams)
 
       if (!results || !results.documents || results.documents.length === 0) {
         return []

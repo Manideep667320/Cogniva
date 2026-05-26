@@ -11,6 +11,11 @@ import { ResourcesPage } from '@/pages/ResourcesPage'
 import { InsightsPage } from '@/pages/InsightsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { Spinner } from '@/components/ui/spinner'
+import { VoiceAvatar } from '@/components/VoiceAvatar'
+import { FlashcardStudio } from '@/pages/FlashcardStudio'
+import { RevisionDeck } from '@/pages/RevisionDeck'
+import { StudentAnalytics } from '@/pages/StudentAnalytics'
+import { StudyCalendar } from '@/pages/StudyCalendar'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { session, loading } = useAuth()
@@ -82,6 +87,22 @@ function AppRoutes() {
                 path="/settings"
                 element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
             />
+            <Route
+                path="/flashcards/studio"
+                element={<ProtectedRoute><FlashcardStudio /></ProtectedRoute>}
+            />
+            <Route
+                path="/flashcards/review"
+                element={<ProtectedRoute><RevisionDeck /></ProtectedRoute>}
+            />
+            <Route
+                path="/analytics"
+                element={<ProtectedRoute><StudentAnalytics /></ProtectedRoute>}
+            />
+            <Route
+                path="/calendar"
+                element={<ProtectedRoute><StudyCalendar /></ProtectedRoute>}
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     )
@@ -92,6 +113,7 @@ export function App() {
         <BrowserRouter>
             <AuthProvider>
                 <AppRoutes />
+                <VoiceAvatar />
             </AuthProvider>
         </BrowserRouter>
     )

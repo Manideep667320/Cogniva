@@ -9,6 +9,8 @@ import {
     GitBranch,
     Upload,
     Settings,
+    Activity,
+    Calendar,
 } from 'lucide-react'
 import {
     Sidebar,
@@ -30,9 +32,11 @@ import { useAuth } from '@/contexts/AuthContext'
 
 const studentNav = [
     { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+    { title: 'Schedule', url: '/calendar', icon: Calendar },
     { title: 'Skill Tree', url: '/skill-tree', icon: GitBranch },
     { title: 'AI Tutor', url: '/tutor', icon: MessageSquare },
     { title: 'Courses', url: '/courses', icon: BookOpen },
+    { title: 'Analytics', url: '/analytics', icon: Activity },
 ]
 
 const facultyNav = [
