@@ -6,6 +6,7 @@ import {
   LineChart, Line, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar 
 } from 'recharts'
 import { Activity, Brain, Target, TrendingUp, AlertTriangle } from 'lucide-react'
+import { API_BASE_URL } from '@/lib/api'
 
 interface AnalyticsData {
   weaknessClusters: Array<{
@@ -36,7 +37,7 @@ export function StudentAnalytics() {
     async function fetchAnalytics() {
       try {
         const token = localStorage.getItem('auth_token')
-        const res = await fetch('http://localhost:8000/api/analytics/student', {
+        const res = await fetch(`${API_BASE_URL}/api/analytics/student`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         const json = await res.json()

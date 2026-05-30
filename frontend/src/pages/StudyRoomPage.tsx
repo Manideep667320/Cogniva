@@ -17,6 +17,7 @@ import { Loader2, Send, Users, ArrowLeft, ChevronLeft, ChevronRight, FileUp, Fol
 import { generateRoomFlashcards } from '@/lib/api'
 import { Tldraw } from '@tldraw/tldraw'
 import '@tldraw/tldraw/tldraw.css'
+import { API_BASE_URL } from '@/lib/api'
 
 // Setup pdf.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
@@ -78,7 +79,7 @@ export function StudyRoomPage() {
         }
 
         // Initialize Socket
-        const newSocket = io('http://localhost:8000')
+        const newSocket = io(API_BASE_URL)
         activeSocket = newSocket
         setSocket(newSocket)
 

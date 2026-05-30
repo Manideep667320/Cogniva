@@ -10,6 +10,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { BookOpen, Video, FileText, BrainCircuit, MessageSquare, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { API_BASE_URL } from '@/lib/api'
 
 interface SearchResult {
   content: string
@@ -52,7 +53,7 @@ export function GlobalSearch() {
       setLoading(true)
       try {
         const token = localStorage.getItem('auth_token')
-        const res = await fetch('http://localhost:8000/api/memory/search', {
+        const res = await fetch(`${API_BASE_URL}/api/memory/search`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

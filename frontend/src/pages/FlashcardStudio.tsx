@@ -5,6 +5,7 @@ import { Check, X, Edit2, Save } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { API_BASE_URL } from '@/lib/api'
 
 interface Flashcard {
   _id: string
@@ -28,7 +29,7 @@ export function FlashcardStudio() {
   const fetchDrafts = async () => {
     try {
       const token = localStorage.getItem('auth_token')
-      const res = await fetch('http://localhost:8000/api/flashcards/drafts', {
+      const res = await fetch(`${API_BASE_URL}/api/flashcards/drafts`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
@@ -52,7 +53,7 @@ export function FlashcardStudio() {
         body.back = editBack
       }
 
-      await fetch(`http://localhost:8000/api/flashcards/${id}/status`, {
+      await fetch(`${API_BASE_URL}/api/flashcards/${id}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

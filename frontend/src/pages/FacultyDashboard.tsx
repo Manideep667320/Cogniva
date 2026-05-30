@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { useAuth } from '@/contexts/AuthContext'
 import { getFacultyCourses, getFacultyStats } from '@/lib/api'
+import { API_BASE_URL } from '@/lib/api'
 
 interface Course {
   id: string
@@ -200,7 +201,7 @@ export function FacultyDashboard() {
                 
                 try {
                   const token = localStorage.getItem('auth_token');
-                  const res = await fetch('http://localhost:8000/api/lecture/upload', {
+                  const res = await fetch(`${API_BASE_URL}/api/lecture/upload`, {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${token}`

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { API_BASE_URL } from '@/lib/api'
 
 interface QueueItem {
   _id: string
@@ -31,7 +32,7 @@ export function RevisionDeck() {
   const fetchQueue = async () => {
     try {
       const token = localStorage.getItem('auth_token')
-      const res = await fetch('http://localhost:8000/api/flashcards/queue', {
+      const res = await fetch(`${API_BASE_URL}/api/flashcards/queue`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
@@ -61,7 +62,7 @@ export function RevisionDeck() {
 
     try {
       const token = localStorage.getItem('auth_token')
-      await fetch('http://localhost:8000/api/flashcards/review', {
+      await fetch(`${API_BASE_URL}/api/flashcards/review`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

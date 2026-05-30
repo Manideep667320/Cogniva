@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { BrainCircuit, BookOpen, Presentation, Zap, Calendar as CalendarIcon, Loader2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
+import { API_BASE_URL } from '@/lib/api'
 
 interface StudyTask {
   _id: string
@@ -32,7 +33,7 @@ export function StudyCalendar() {
   const fetchPlans = async () => {
     try {
       const token = localStorage.getItem('auth_token')
-      const res = await fetch('http://localhost:8000/api/plan/schedule', {
+      const res = await fetch(`${API_BASE_URL}/api/plan/schedule`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const json = await res.json()
@@ -55,7 +56,7 @@ export function StudyCalendar() {
     setGenerating(true)
     try {
       const token = localStorage.getItem('auth_token')
-      const res = await fetch('http://localhost:8000/api/plan/generate', {
+      const res = await fetch(`${API_BASE_URL}/api/plan/generate`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -86,7 +87,7 @@ export function StudyCalendar() {
 
     try {
       const token = localStorage.getItem('auth_token')
-      await fetch(`http://localhost:8000/api/plan/task/${planId}/${taskId}`, {
+      await fetch(`${API_BASE_URL}/api/plan/task/${planId}/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
