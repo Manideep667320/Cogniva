@@ -37,4 +37,16 @@ export const verifyToken = async (req, res, next) => {
   }
 }
 
+export const checkRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.userDb) {
+      return res.status(401).json({ success: false, message: 'Not authorized' })
+    }
+    if (!roles.includes(req.userDb.role)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' })
+    }
+    next()
+  }
+}
+
 export default verifyToken

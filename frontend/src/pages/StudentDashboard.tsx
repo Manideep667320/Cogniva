@@ -10,7 +10,7 @@ import { MasteryProgress } from '@/components/dashboard/MasteryProgress'
 import { WeakTopicsPanel } from '@/components/dashboard/WeakTopicsPanel'
 import { RecommendationPanel } from '@/components/dashboard/RecommendationPanel'
 import { useAuth } from '@/contexts/AuthContext'
-import { getSkillTrees, getEnrolledCourses, getChatHistory } from '@/lib/api'
+import { getSkillTrees, getEnrolledCourses, getChatHistory, getMyRank, getMyBadges, getMyRisk } from '@/lib/api'
 import { CourseCard } from '@/components/courses/CourseCard'
 import { useNavigate } from 'react-router-dom'
 import { LearningHeatmap } from '@/components/dashboard/LearningHeatmap'
@@ -37,7 +37,7 @@ interface Course {
   tags?: string[]
 }
 
-function StatCard({ icon: Icon, label, value, trend }: { icon: React.ElementType; label: string; value: string | number; trend?: string }) {
+function StatCard({ icon: Icon, label, value, trend }: { icon: any; label: string; value: string | number; trend?: string }) {
   return (
     <Card className="border-border/60 shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="pt-6">
@@ -64,6 +64,9 @@ export function StudentDashboard() {
   const [chatHistory, setChatHistory] = useState<LocalMessage[]>([])
   const [streak, setStreak] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [myRank, setMyRank] = useState<any>(null)
+  const [recentBadge, setRecentBadge] = useState<any>(null)
+  const [riskAssessment, setRiskAssessment] = useState<any>(null)
 
   useEffect(() => {
     if (!user) return
@@ -112,6 +115,23 @@ export function StudentDashboard() {
           }
           setStreak(currentStreak)
         }
+
+        // Load rank and recent badge
+        try {
+          const rankData = await getMyRank()
+          setMyRank(rankData)
+          
+          const badges = await getMyBadges()
+          if (badges.length > 0) {
+            setRecentBadge(badges[0])
+          }
+          
+          const riskData = await getMyRisk()
+          setRiskAssessment(riskData)
+        } catch (e) {
+          console.error('Failed to load rank/badges', e)
+        }
+
       } catch (err) {
         console.error('Failed to load dashboard data:', err)
       }
@@ -140,15 +160,30 @@ export function StudentDashboard() {
             <h2 className="text-2xl font-bold mt-0.5">{firstName} 👋</h2>
             <p className="text-white/70 text-sm mt-1">Ready to learn something new today?</p>
           </div>
+          
+          <div className="flex flex-col items-end gap-2 bg-black/10 p-3 rounded-lg backdrop-blur-sm border border-white/10 hidden sm:flex">
+            {myRank && (
+              <div className="flex items-center gap-4 text-sm font-medium">
+                <div className="flex items-center gap-1.5"><Sparkles className="size-4 text-yellow-300" /> {myRank.xp || 0} XP</div>
+                <div className="flex items-center gap-1.5"><Target className="size-4 text-orange-300" /> Rank #{myRank.rank || '-'}</div>
+              </div>
+            )}
+            {recentBadge && (
+              <div className="flex items-center gap-2 text-xs bg-white/10 px-2 py-1 rounded">
+                <span className="text-sm">{recentBadge.icon}</span> {recentBadge.name}
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-2">
             <Button asChild className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm">
-              <Link to="/skill-tree">
-                <GitBranch className="size-4 mr-2" /> Skill Trees
+              <Link to="/leaderboard">
+                <Target className="size-4 mr-2" /> Leaderboard
               </Link>
             </Button>
             <Button asChild className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm">
               <Link to="/tutor">
-                <Sparkles className="size-4 mr-2" /> AI Tutor
+                <MessageSquare className="size-4 mr-2" /> AI Tutor
               </Link>
             </Button>
           </div>
@@ -164,8 +199,57 @@ export function StudentDashboard() {
 
       {/* Profile Heatmap Section */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 space-y-4">
           <LearningHeatmap history={chatHistory} />
+          
+          {/* Learning Health Risk Card */}
+          {riskAssessment && (
+            <Card className={`border-l-4 ${
+              riskAssessment.risk_level === 'high' ? 'border-l-red-500 bg-red-500/5' :
+              riskAssessment.risk_level === 'medium' ? 'border-l-amber-500 bg-amber-500/5' :
+              'border-l-emerald-500 bg-emerald-500/5'
+            }`}>
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Learning Health</CardTitle>
+                  <CardDescription>Predicted mastery trajectory for the next 30 days</CardDescription>
+                </div>
+                <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                  riskAssessment.risk_level === 'high' ? 'bg-red-500/20 text-red-600 dark:text-red-400' :
+                  riskAssessment.risk_level === 'medium' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                  'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                }`}>
+                  {riskAssessment.risk_level.toUpperCase()} RISK
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium mb-1 text-muted-foreground">Contributing Factors:</p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      {riskAssessment.contributing_factors?.map((f: string, i: number) => (
+                        <li key={i}>{f}</li>
+                      ))}
+                      {(!riskAssessment.contributing_factors || riskAssessment.contributing_factors.length === 0) && (
+                        <li>No specific risk factors detected</li>
+                      )}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium mb-1 text-muted-foreground">Recommended Actions:</p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      {riskAssessment.recommended_actions?.map((a: string, i: number) => (
+                        <li key={i} className="text-primary">{a}</li>
+                      ))}
+                      {(!riskAssessment.recommended_actions || riskAssessment.recommended_actions.length === 0) && (
+                        <li>Continue your current study habits!</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
         <div className="lg:col-span-1">
           <LearningProfileCard />

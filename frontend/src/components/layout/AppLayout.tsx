@@ -4,6 +4,7 @@ import { Separator } from '@/components/ui/separator'
 import { AppSidebar } from './AppSidebar'
 import { ModeToggle } from '@/components/mode-toggle'
 import { GlobalSearch } from '@/components/GlobalSearch'
+import { MobileNav } from './MobileNav'
 
 interface AppLayoutProps {
     children: ReactNode
@@ -34,6 +35,7 @@ export function AppLayout({ children, title, description, headerRight }: AppLayo
                     {children}
                 </main>
             </SidebarInset>
+            <MobileNav />
         </SidebarProvider>
     )
 }

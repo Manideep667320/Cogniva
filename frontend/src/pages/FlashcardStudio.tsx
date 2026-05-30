@@ -27,8 +27,8 @@ export function FlashcardStudio() {
 
   const fetchDrafts = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch('https://cogniva-wu5f.onrender.com/api/flashcards/drafts', {
+      const token = localStorage.getItem('auth_token')
+      const res = await fetch('http://localhost:8000/api/flashcards/drafts', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
@@ -44,7 +44,7 @@ export function FlashcardStudio() {
 
   const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('auth_token')
       const body: any = { status }
       
       if (editingId === id) {
@@ -52,7 +52,7 @@ export function FlashcardStudio() {
         body.back = editBack
       }
 
-      await fetch(`https://cogniva-wu5f.onrender.com/api/flashcards/${id}/status`, {
+      await fetch(`http://localhost:8000/api/flashcards/${id}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

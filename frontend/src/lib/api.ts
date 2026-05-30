@@ -1,4 +1,4 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cogniva-wu5f.onrender.com'
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function getAuthToken(): string | null {
   return localStorage.getItem('auth_token')
@@ -323,6 +323,175 @@ export async function deleteUpload(uploadId: string) {
   return true
 }
 
+// ─── Study Plan APIs ──────────────────────────────────────────
+
+export async function getStudySchedule() {
+  const response = await fetch(`${API_BASE_URL}/api/plan/schedule`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch schedule');
+  const json = await response.json();
+  return json.data;
+}
+
+export async function generateStudySchedule() {
+  const response = await fetch(`${API_BASE_URL}/api/plan/generate`, {
+    method: 'POST',
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to generate schedule');
+  const json = await response.json();
+  return json.data;
+}
+
+export async function toggleTaskCompletion(planId: string, taskId: string, completed: boolean) {
+  const response = await fetch(`${API_BASE_URL}/api/plan/task/${planId}/${taskId}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({ completed })
+  });
+  if (!response.ok) throw new Error('Failed to update task');
+  const json = await response.json();
+  return json.data;
+}
+
+// ─── Assignment APIs ──────────────────────────────────────────
+
+export async function submitAssignment(courseId: string, title: string, questionText: string, studentAnswer: string) {
+  const response = await fetch(`${API_BASE_URL}/api/assignment/submit`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      course_id: courseId,
+      title,
+      question_text: questionText,
+      student_answer: studentAnswer
+    })
+  });
+  if (!response.ok) throw new Error('Failed to submit assignment');
+  const json = await response.json();
+  return json.data;
+}
+
+export async function evaluateAssignment(assignmentId: string) {
+  const response = await fetch(`${API_BASE_URL}/api/assignment/evaluate/${assignmentId}`, {
+    method: 'POST',
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to evaluate assignment');
+  const json = await response.json();
+  return json.data;
+}
+
+export async function getStudentAssignments() {
+  const response = await fetch(`${API_BASE_URL}/api/assignment/history`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch assignments history');
+  const json = await response.json();
+  return json.data;
+}
+
+export async function getFacultySubmissions(courseId: string) {
+  const response = await fetch(`${API_BASE_URL}/api/assignment/faculty/${courseId}`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch faculty submissions');
+  const json = await response.json();
+  return json.data;
+}
+
+export async function overrideAssignmentScore(assignmentId: string, score: number) {
+  const response = await fetch(`${API_BASE_URL}/api/assignment/${assignmentId}/override`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({ score })
+  });
+  if (!response.ok) throw new Error('Failed to override score');
+  const json = await response.json();
+  return json.data;
+}
+
+// ─── Leaderboard APIs ─────────────────────────────────────────
+
+export async function getLeaderboard() {
+  const response = await fetch(`${API_BASE_URL}/api/leaderboard`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch leaderboard');
+  const json = await response.json();
+  return json.data;
+}
+
+export async function getMyRank() {
+  const response = await fetch(`${API_BASE_URL}/api/leaderboard/me`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch rank');
+  const json = await response.json();
+  return json.data;
+}
+
+export async function getBadges() {
+  const response = await fetch(`${API_BASE_URL}/api/leaderboard/badges`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch badges');
+  const json = await response.json();
+  return json.data;
+}
+
+export async function getMyBadges() {
+  const response = await fetch(`${API_BASE_URL}/api/leaderboard/badges/me`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch my badges');
+  const json = await response.json();
+  return json.data;
+}
+
+// ─── Prediction APIs ─────────────────────────────────────────
+
+export async function getMyRisk() {
+  const response = await fetch(`${API_BASE_URL}/api/prediction/risk`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch prediction risk');
+  const json = await response.json();
+  return json.data;
+}
+
+export async function getClassRisk(courseId: string) {
+  const response = await fetch(`${API_BASE_URL}/api/prediction/class/${courseId}`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch class risk');
+  const json = await response.json();
+  return json.data;
+}
+
+// ─── Room APIs ───────────────────────────────────────────────
+
+export async function createRoom(name: string, pdf_url: string) {
+  const response = await fetch(`${API_BASE_URL}/api/rooms`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ name, pdf_url }),
+  });
+  if (!response.ok) throw new Error('Failed to create room');
+  const json = await response.json();
+  return json.data;
+}
+
+export async function getRoom(roomCode: string) {
+  const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch room');
+  const json = await response.json();
+  return json.data;
+}
+
 // ─── Skill Tree APIs ───────────────────────────────────────
 
 export async function getSkillTrees() {
@@ -573,3 +742,43 @@ export async function getStudentInsights() {
   return data.data
 }
 
+export async function uploadRoomPdf(roomCode: string, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const token = getAuthToken()
+  const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}/upload-pdf`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+      // Note: Do not set Content-Type, browser will automatically set it to multipart/form-data with the correct boundary
+    },
+    body: formData
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.message || 'Failed to upload PDF')
+  }
+
+  const data = await response.json()
+  return data
+}
+
+
+// Generate flashcards from PDF in Study Room
+export const generateRoomFlashcards = async (roomCode: string) => {
+  const token = getAuthToken()
+  const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}/generate-flashcards`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.message || 'Failed to generate flashcards')
+  }
+  return await response.json()
+}

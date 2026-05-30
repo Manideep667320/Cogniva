@@ -21,10 +21,12 @@ interface Recommendations {
   skill_tree_title: string
   overall_mastery: number
   recommendations: {
+    urgent_review: RecommendedSkill[]
     repeat_basics: RecommendedSkill[]
     moderate_practice: RecommendedSkill[]
     ready_to_advance: RecommendedSkill[]
     next_skills: RecommendedSkill[]
+    challenge_yourself: RecommendedSkill[]
   }
 }
 
@@ -49,10 +51,12 @@ export function RecommendationPanel() {
 
   const { recommendations } = recs
   const hasAny =
-    recommendations.next_skills.length > 0 ||
-    recommendations.repeat_basics.length > 0 ||
-    recommendations.moderate_practice.length > 0 ||
-    recommendations.ready_to_advance.length > 0
+    (recommendations?.urgent_review?.length || 0) > 0 ||
+    (recommendations?.next_skills?.length || 0) > 0 ||
+    (recommendations?.repeat_basics?.length || 0) > 0 ||
+    (recommendations?.moderate_practice?.length || 0) > 0 ||
+    (recommendations?.challenge_yourself?.length || 0) > 0 ||
+    (recommendations?.ready_to_advance?.length || 0) > 0
 
   if (!hasAny) return null
 
@@ -71,7 +75,7 @@ export function RecommendationPanel() {
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Next skills to start */}
-        {recommendations.next_skills.slice(0, 2).map((skill) => (
+        {(recommendations?.next_skills || []).slice(0, 2).map((skill) => (
           <Link
             key={skill.skill_id}
             to={`/skill-tree/${recs.skill_tree_id}`}
@@ -88,8 +92,44 @@ export function RecommendationPanel() {
           </Link>
         ))}
 
-        {/* Repeat basics */}
-        {recommendations.repeat_basics.slice(0, 2).map((skill) => (
+        {/* Urgent Review */}
+        {(recommendations?.urgent_review || []).slice(0, 1).map((skill) => (
+          <Link
+            key={skill.skill_id}
+            to={`/skill-tree/${recs.skill_tree_id}`}
+            className="group flex items-center gap-3 rounded-lg border border-red-500/20 p-3 hover:bg-red-500/5 transition-colors"
+          >
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
+              <RotateCcw className="size-3.5 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{skill.skill_name}</p>
+              <p className="text-xs text-red-600 dark:text-red-400">Urgent review needed • {skill.mastery_score}%</p>
+            </div>
+            <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </Link>
+        ))}
+
+        {/* Challenge Yourself */}
+        {(recommendations?.challenge_yourself || []).slice(0, 1).map((skill) => (
+          <Link
+            key={skill.skill_id}
+            to={`/skill-tree/${recs.skill_tree_id}`}
+            className="group flex items-center gap-3 rounded-lg border border-purple-500/20 p-3 hover:bg-purple-500/5 transition-colors"
+          >
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/10">
+              <Rocket className="size-3.5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{skill.skill_name}</p>
+              <p className="text-xs text-purple-600 dark:text-purple-400">Challenge yourself • {skill.mastery_score}%</p>
+            </div>
+            <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </Link>
+        ))}
+
+        {/* Repeat Basics */}
+        {(recommendations?.repeat_basics || []).slice(0, 1).map((skill) => (
           <Link
             key={skill.skill_id}
             to={`/skill-tree/${recs.skill_tree_id}`}
@@ -106,8 +146,8 @@ export function RecommendationPanel() {
           </Link>
         ))}
 
-        {/* Moderate practice */}
-        {recommendations.moderate_practice.slice(0, 2).map((skill) => (
+        {/* Moderate Practice */}
+        {(recommendations?.moderate_practice || []).slice(0, 1).map((skill) => (
           <Link
             key={skill.skill_id}
             to={`/skill-tree/${recs.skill_tree_id}`}
@@ -124,8 +164,8 @@ export function RecommendationPanel() {
           </Link>
         ))}
 
-        {/* Ready to advance */}
-        {recommendations.ready_to_advance.slice(0, 1).map((skill) => (
+        {/* Ready to Advance */}
+        {(recommendations?.ready_to_advance || []).slice(0, 1).map((skill) => (
           <div
             key={skill.skill_id}
             className="flex items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3"

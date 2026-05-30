@@ -101,9 +101,8 @@ router.post('/login', asyncHandler(async (req, res) => {
     })
   }
 
-  // Update last login
-  user.last_login = Date.now()
-  await user.save()
+  // Update last login asynchronously (non-blocking)
+  User.updateOne({ _id: user._id }, { last_login: Date.now() }).catch(err => console.error('Failed to update last_login', err))
 
   // Generate token
   const token = generateToken(user._id.toString())

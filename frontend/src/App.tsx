@@ -17,6 +17,10 @@ import { FlashcardStudio } from '@/pages/FlashcardStudio'
 import { RevisionDeck } from '@/pages/RevisionDeck'
 import { StudentAnalytics } from '@/pages/StudentAnalytics'
 import { StudyCalendar } from '@/pages/StudyCalendar'
+import { AssignmentsPage } from '@/pages/AssignmentsPage'
+import { LeaderboardPage } from '@/pages/LeaderboardPage'
+import { RoomsDashboard } from '@/pages/RoomsDashboard'
+import { StudyRoomPage } from '@/pages/StudyRoomPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { session, loading } = useAuth()
@@ -103,6 +107,22 @@ function AppRoutes() {
             <Route
                 path="/calendar"
                 element={<ProtectedRoute><StudyCalendar /></ProtectedRoute>}
+            />
+            <Route
+                path="/assignments"
+                element={<ProtectedRoute><AssignmentsPage /></ProtectedRoute>}
+            />
+            <Route
+                path="/leaderboard"
+                element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>}
+            />
+            <Route
+                path="/rooms"
+                element={<ProtectedRoute><RoomsDashboard /></ProtectedRoute>}
+            />
+            <Route
+                path="/rooms/:roomId"
+                element={<ProtectedRoute><StudyRoomPage /></ProtectedRoute>}
             />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

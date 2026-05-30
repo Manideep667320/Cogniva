@@ -17,7 +17,9 @@ import { Progress } from '@/components/ui/progress'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { getStudentInsights } from '@/lib/api'
+import { getStudentInsights, getFacultyCourses, getClassRisk } from '@/lib/api'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface InsightData {
   top_students: any[]
@@ -29,11 +31,24 @@ export function InsightsPage() {
   const [data, setData] = useState<InsightData | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const { profile } = useAuth()
+  const [courses, setCourses] = useState<any[]>([])
+  const [selectedCourse, setSelectedCourse] = useState<string>('')
+  const [classRisk, setClassRisk] = useState<any>(null)
+
   useEffect(() => {
     async function loadInsights() {
       try {
         const res = await getStudentInsights()
         setData(res)
+
+        if (profile?._id) {
+          const coursesRes = await getFacultyCourses(profile._id)
+          setCourses(coursesRes.data)
+          if (coursesRes.data.length > 0) {
+            setSelectedCourse(coursesRes.data[0]._id)
+          }
+        }
       } catch (err) {
         console.error('Failed to load insights:', err)
       } finally {
@@ -41,7 +56,21 @@ export function InsightsPage() {
       }
     }
     loadInsights()
-  }, [])
+  }, [profile?._id])
+
+  useEffect(() => {
+    async function loadRisk() {
+      if (selectedCourse) {
+        try {
+          const riskRes = await getClassRisk(selectedCourse)
+          setClassRisk(riskRes.data)
+        } catch (err) {
+          console.error('Failed to load class risk', err)
+        }
+      }
+    }
+    loadRisk()
+  }, [selectedCourse])
 
   if (loading) {
     return (
@@ -98,6 +127,75 @@ export function InsightsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Prediction Risk Section */}
+        {courses.length > 0 && (
+          <Card className="border-l-4 border-l-red-500 bg-red-500/5">
+            <CardHeader className="pb-2">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertTriangle className="size-5 text-red-500" />
+                    At-Risk Students Prediction
+                  </CardTitle>
+                  <CardDescription>AI-driven heuristic model identifying students needing early intervention</CardDescription>
+                </div>
+                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                  <SelectTrigger className="w-full md:w-[250px] bg-background">
+                    <SelectValue placeholder="Select course..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courses.map(c => (
+                      <SelectItem key={c._id} value={c._id}>{c.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {classRisk ? (
+                <div className="space-y-4">
+                  <div className="flex gap-4 mb-4">
+                    <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20">High Risk: {classRisk.summary?.high_risk || 0}</Badge>
+                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">Medium Risk: {classRisk.summary?.medium_risk || 0}</Badge>
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Low Risk: {classRisk.summary?.low_risk || 0}</Badge>
+                  </div>
+                  
+                  {classRisk.students?.filter((s: any) => s.risk_assessment.risk_level === 'high' || s.risk_assessment.risk_level === 'medium').length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {classRisk.students.filter((s: any) => s.risk_assessment.risk_level === 'high' || s.risk_assessment.risk_level === 'medium').map((sr: any) => (
+                        <div key={sr.student._id} className="p-3 border rounded-lg bg-background flex flex-col gap-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="size-8 border">
+                                <AvatarImage src={sr.student.avatar_url} />
+                                <AvatarFallback className="text-[10px]">{sr.student.full_name?.[0] || 'U'}</AvatarFallback>
+                              </Avatar>
+                              <span className="font-semibold text-sm">{sr.student.full_name}</span>
+                            </div>
+                            <Badge className={sr.risk_assessment.risk_level === 'high' ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}>
+                              {sr.risk_assessment.risk_level.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <span className="font-medium">Primary Factors:</span> {sr.risk_assessment.contributing_factors?.slice(0, 2).join(', ') || 'N/A'}
+                          </div>
+                          <div className="text-xs text-primary font-medium mt-1">
+                            <span className="text-muted-foreground">Rec:</span> {sr.risk_assessment.recommended_actions?.[0] || 'No specific action'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic p-4 text-center border rounded-lg bg-background">No high or medium risk students identified in this course.</p>
+                  )}
+                </div>
+              ) : (
+                <div className="animate-pulse h-20 bg-muted/20 rounded-md"></div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Top Performers */}

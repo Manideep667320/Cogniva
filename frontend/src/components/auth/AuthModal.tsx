@@ -100,7 +100,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[1050px] p-0 overflow-hidden border-none bg-transparent shadow-2xl">
+      <DialogContent className="sm:max-w-[1050px] p-0 overflow-hidden border-none bg-transparent shadow-2xl [&>button]:hidden">
         {/* Visually Hidden Accessibility Titles */}
         <div className="sr-only">
           <DialogTitle>{activeTab === 'login' ? 'Login to Cogniva AI' : 'Join Cogniva AI'}</DialogTitle>
@@ -171,7 +171,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
               <div className="flex flex-col gap-5 pt-2">
                 <Button
                   variant="outline"
-                  className="h-12 px-6 bg-white text-slate-900 border-none hover:bg-white/90 w-full flex items-center justify-center gap-3 rounded-xl font-bold text-base shadow-lg"
+                  className="h-12 px-6 bg-white text-slate-900 dark:text-white border-none hover:bg-white/90 w-full flex items-center justify-center gap-3 rounded-xl font-bold text-base shadow-lg"
                 >
                   <img src="https://www.vectorlogo.zone/logos/google/google-icon.svg" className="size-5" alt="Google" />
                   Sign in with Google

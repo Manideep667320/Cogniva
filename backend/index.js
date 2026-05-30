@@ -3,8 +3,11 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
+import http from 'http'
+import { Server } from 'socket.io'
 import connectDB from './config/database.js'
 import { errorHandler } from './middlewares/errorHandler.js'
+import { setupRoomSocket } from './sockets/roomHandler.js'
 
 // Routes
 import authRoutes from './routes/authRoutes.js'
@@ -22,11 +25,26 @@ import voiceRoutes from './routes/voiceRoutes.js'
 import flashcardRoutes from './routes/flashcardRoutes.js'
 import analyticsRoutes from './routes/analyticsRoutes.js'
 import planRoutes from './routes/planRoutes.js'
+import assignmentRoutes from './routes/assignmentRoutes.js'
+import leaderboardRoutes from './routes/leaderboardRoutes.js'
+import predictionRoutes from './routes/predictionRoutes.js'
+import roomRoutes from './routes/roomRoutes.js'
 
 // Load environment variables
 dotenv.config()
 
 const app = express()
+const server = http.createServer(app)
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+})
+
+// Setup sockets
+setupRoomSocket(io)
+
 const PORT = process.env.PORT || 8000
 
 // Ensure uploads directory exists
@@ -53,6 +71,9 @@ app.use(cors({
 }))
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ extended: true, limit: '50mb' }))
+
+// Serve static files AFTER CORS so they get the headers
+app.use('/uploads', express.static(uploadsDir))
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -85,6 +106,10 @@ app.use('/api/voice', voiceRoutes)
 app.use('/api/flashcards', flashcardRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/plan', planRoutes)
+app.use('/api/assignment', assignmentRoutes)
+app.use('/api/leaderboard', leaderboardRoutes)
+app.use('/api/prediction', predictionRoutes)
+app.use('/api/rooms', roomRoutes)
 
 // 404 handler
 app.use((req, res) => {
@@ -105,7 +130,7 @@ const startServer = async () => {
     await connectDB()
 
     // Start listening
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║  🚀 Cogniva Backend Started Successfully                 ║

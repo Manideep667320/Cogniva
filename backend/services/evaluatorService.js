@@ -64,6 +64,25 @@ class EvaluatorService {
   }
 
   /**
+   * Evaluate a standalone assignment submission
+   * @param {string} question - The assignment prompt
+   * @param {string} answer - Student's submission
+   * @param {string} context - Any course context or rubric
+   * @returns {Object} Structured evaluation result
+   */
+  async evaluateAssignment(question, answer, context = '') {
+    console.log('📝 [EvaluatorAgent] Evaluating assignment submission...')
+    const startTime = Date.now()
+
+    const evaluation = await GeminiService.evaluateAssignment(question, answer, context)
+
+    const responseTimeMs = Date.now() - startTime
+    console.log(`✅ [EvaluatorAgent] Assignment evaluation complete in ${responseTimeMs}ms: score=${evaluation.score}`)
+
+    return evaluation
+  }
+
+  /**
    * Detect specific reasoning gaps from the evaluation
    */
   _detectReasoningGaps(evaluation, question, answer) {

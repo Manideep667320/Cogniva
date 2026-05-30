@@ -103,7 +103,7 @@ export const LearningHeatmap = memo(function LearningHeatmap({ history }: Learni
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-sm font-normal text-slate-100 italic">
-          <span className="font-semibold not-italic">{totalInYear} contributions</span> in {selectedYear}
+          <span className="font-semibold not-italic">{totalInYear > 0 ? (totalInYear * 8 / 60).toFixed(1) : 0} hours spent</span> in {selectedYear}
         </h3>
       </div>
 

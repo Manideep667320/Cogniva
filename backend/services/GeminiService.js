@@ -153,6 +153,50 @@ Ensure the response is ONLY the JSON object, with no markdown formatting or extr
     }
   }
 
+  async evaluateAssignment(question, userAnswer, context = '') {
+    const evalPrompt = `You are an expert educator evaluating a student's assignment submission. Analyze the answer and provide comprehensive feedback.
+
+CONTEXT (study material or course details, if any):
+${context.substring(0, 2000)}
+
+QUESTION / PROMPT: ${question}
+
+STUDENT'S SUBMISSION: ${userAnswer}
+
+Evaluate the submission and return ONLY valid JSON in this exact format:
+{
+  "score": 0-100,
+  "feedback": "Detailed overall feedback on the submission",
+  "strengths": ["strength1", "strength2"],
+  "weaknesses": ["weakness1", "weakness2"],
+  "suggestions": ["suggestion1", "suggestion2"]
+}
+Ensure the response is ONLY the JSON object, with no markdown formatting or extra text.`
+
+    let retries = 2;
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const response = await this.generateResponse(evalPrompt, [])
+        const text = response.response
+        
+        // Extract JSON using regex just in case
+        const jsonMatch = text.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          return JSON.parse(jsonMatch[0])
+        }
+        return JSON.parse(text)
+      } catch (error) {
+        if (error.message.includes('429') && i < retries) {
+          console.warn(`[Evaluator] Rate limited (429). Retrying in 16 seconds...`);
+          await new Promise(res => setTimeout(res, 16000));
+          continue;
+        }
+        console.error('❌ Assignment Evaluator JSON parsing error:', error)
+        throw error
+      }
+    }
+  }
+
   async generateQuestion(skillName, context = '') {
     const prompt = `You are an expert educator. Generate a practice question about "${skillName}" based on the following material.
 

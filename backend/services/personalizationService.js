@@ -1,4 +1,5 @@
 import { LearningProfile } from '../models/LearningProfile.js'
+import { Badge, UserBadge } from '../models/Badge.js'
 import { profileCache } from './cacheService.js'
 
 /**
@@ -98,6 +99,11 @@ class PersonalizationService {
     profile.preferred_style = this._inferPreferredStyle(profile)
 
     await profile.save()
+
+    // Check and award badges asynchronously (don't block the update)
+    this.checkAndAwardBadges(userId, profile).catch(err => {
+      console.error(`❌ [PersonalizationService] Failed to check badges for user ${userId}:`, err.message)
+    })
 
     // Invalidate cache
     profileCache.delete(`profile:${userId}`)
@@ -224,6 +230,53 @@ class PersonalizationService {
     // Students doing well can handle practical application
     if (profile.correct_rate > 0.7 && profile.total_interactions > 10) return 'practical'
     return profile.preferred_style || 'conceptual'
+  }
+
+  /**
+   * Check criteria and award new badges if applicable
+   */
+  async checkAndAwardBadges(userId, profile) {
+    // Get all available badges
+    const badges = await Badge.find()
+    if (!badges || badges.length === 0) return
+
+    // Get user's current badges
+    const userBadges = await UserBadge.find({ user_id: userId })
+    const earnedBadgeIds = new Set(userBadges.map(b => b.badge_id.toString()))
+
+    const newBadges = []
+
+    for (const badge of badges) {
+      if (earnedBadgeIds.has(badge._id.toString())) continue // Already earned
+
+      let earned = false
+      const { type, threshold } = badge.criteria
+
+      switch (type) {
+        case 'xp':
+          earned = (profile.total_xp || 0) >= threshold
+          break
+        case 'streak':
+          earned = (profile.streak?.current || 0) >= threshold
+          break
+        case 'perfect_score':
+          // Simplified: award if total_correct is high enough (can be refined later)
+          earned = (profile.total_correct || 0) >= threshold
+          break
+      }
+
+      if (earned) {
+        newBadges.push({
+          user_id: userId,
+          badge_id: badge._id
+        })
+        console.log(`🏆 [PersonalizationService] User ${userId} earned badge: ${badge.name}`)
+      }
+    }
+
+    if (newBadges.length > 0) {
+      await UserBadge.insertMany(newBadges)
+    }
   }
 
   /**

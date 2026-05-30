@@ -11,6 +11,10 @@ import {
     Settings,
     Activity,
     Calendar,
+    FileText,
+    Trophy,
+    Bot,
+    Users,
 } from 'lucide-react'
 import {
     Sidebar,
@@ -32,16 +36,20 @@ import { useAuth } from '@/contexts/AuthContext'
 
 const studentNav = [
     { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-    { title: 'Schedule', url: '/calendar', icon: Calendar },
-    { title: 'Skill Tree', url: '/skill-tree', icon: GitBranch },
-    { title: 'AI Tutor', url: '/tutor', icon: MessageSquare },
+    { title: 'Leaderboard', url: '/leaderboard', icon: Trophy },
+    { title: 'Skill Trees', url: '/skill-tree', icon: GitBranch },
+    { title: 'AI Tutor', url: '/tutor', icon: Bot },
     { title: 'Courses', url: '/courses', icon: BookOpen },
-    { title: 'Analytics', url: '/analytics', icon: Activity },
+    { title: 'Study Calendar', url: '/calendar', icon: Calendar },
+    { title: 'Flashcards', url: '/flashcards/review', icon: BrainCircuit },
+    { title: 'Assignments', url: '/assignments', icon: FileText },
+    { title: 'Study Rooms', url: '/rooms', icon: Users },
 ]
 
 const facultyNav = [
     { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
     { title: 'Manage Courses', url: '/courses', icon: BookOpen },
+    { title: 'Assignments', url: '/assignments', icon: FileText },
     { title: 'Knowledge Base', url: '/resources', icon: Upload },
     { title: 'Student Insights', url: '/insights', icon: GraduationCap },
     { title: 'Settings', url: '/settings', icon: Settings },
@@ -68,7 +76,7 @@ export function AppSidebar() {
                     <img
                         src="/cogniva_horizontal_logo.png"
                         alt="Cogniva"
-                        className="h-12 w-auto object-contain transition-all group-data-[collapsible=icon]:hidden"
+                        className="h-12 w-auto object-contain transition-all group-data-[collapsible=icon]:hidden dark:bg-white/90 dark:p-1.5 dark:rounded-xl"
                     />
                     <img
                         src="/Logo.png"

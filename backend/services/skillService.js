@@ -133,10 +133,12 @@ Return ONLY the JSON:`
     })
 
     const recommendations = {
-      repeat_basics: [],     // mastery < 50
+      urgent_review: [],      // mastery < 40 or high weakness
+      repeat_basics: [],      // mastery 40-50
       moderate_practice: [],  // mastery 50-80
       ready_to_advance: [],   // mastery > 80
       next_skills: [],        // unlocked but not started
+      challenge_yourself: [], // mastery > 90
     }
 
     for (const node of skillTree.nodes) {
@@ -159,12 +161,17 @@ Return ONLY the JSON:`
         level: node.level,
       }
 
-      if (score < 50 && (mastery?.interactions || 0) > 0) {
+      if (score < 40 && (mastery?.interactions || 0) > 0) {
+        recommendations.urgent_review.push(item)
+      } else if (score >= 40 && score < 50 && (mastery?.interactions || 0) > 0) {
         recommendations.repeat_basics.push(item)
       } else if (score >= 50 && score < 80) {
         recommendations.moderate_practice.push(item)
       } else if (score >= 80) {
         recommendations.ready_to_advance.push(item)
+        if (score >= 90) {
+          recommendations.challenge_yourself.push(item)
+        }
       }
 
       if ((mastery?.interactions || 0) === 0 && prerequisitesMet) {

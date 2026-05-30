@@ -129,7 +129,7 @@ export function MasteryTrendChart() {
         </CardHeader>
         <CardContent>
           <div className="h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
                 <XAxis
@@ -156,11 +156,14 @@ export function MasteryTrendChart() {
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
                     fontSize: 12,
+                    color: 'hsl(var(--foreground))'
                   }}
-                  formatter={(value: number) => [`${value}%`, undefined]}
+                  itemStyle={{ color: 'hsl(var(--foreground))' }}
+                  formatter={(value: any) => [`${value}%`, undefined as any]}
                 />
                 <Legend
                   wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                  formatter={(value) => <span className="text-foreground">{value}</span>}
                 />
                 {skillNames.map((name, i) => (
                   <Line

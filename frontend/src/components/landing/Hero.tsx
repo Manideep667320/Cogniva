@@ -16,7 +16,7 @@ export function Hero({ onSignup }: HeroProps) {
       <div className="grid lg:grid-cols-2 gap-8 items-center">
         {/* Left Content */}
         <motion.div
-          className="space-y-6"
+          className="space-y-6 lg:pt-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
