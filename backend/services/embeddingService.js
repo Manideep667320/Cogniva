@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
-const EMBEDDING_MODEL = 'text-embedding-004'
+const EMBEDDING_MODEL = 'gemini-embedding-2'
 
 /**
  * Embedding Service
