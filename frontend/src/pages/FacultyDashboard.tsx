@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BookOpen, Users, TrendingUp, Plus, ArrowRight, ChartBar as BarChart3, Star, Clock, Trash2, Video } from 'lucide-react'
+import { BookOpen, Users, TrendingUp, Plus, ArrowRight, ChartBar as BarChart3, Star, Clock, Trash2, Video, Link as LinkIcon, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,9 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { useAuth } from '@/contexts/AuthContext'
 import { getFacultyCourses, getFacultyStats, deleteCourse } from '@/lib/api'
 import { API_BASE_URL } from '@/lib/api'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { toast } from 'sonner'
 
 interface Course {
   id: string
@@ -40,6 +43,49 @@ export function FacultyDashboard() {
   const [courses, setCourses] = useState<Course[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Lecture URL upload states
+  const [lectureUrl, setLectureUrl] = useState('')
+  const [lectureTitle, setLectureTitle] = useState('')
+  const [urlUploading, setUrlUploading] = useState(false)
+
+  const handleLectureUrlSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!lectureUrl.trim()) {
+      toast.error('Please enter a valid URL')
+      return
+    }
+
+    setUrlUploading(true)
+    try {
+      const token = sessionStorage.getItem('auth_token')
+      const res = await fetch(`${API_BASE_URL}/api/lecture/upload-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          url: lectureUrl.trim(),
+          title: lectureTitle.trim() || 'Recorded Lecture Link'
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.message || 'Submission failed')
+      }
+
+      toast.success('Lecture URL registered successfully! Ingestion & transcription started.')
+      setLectureUrl('')
+      setLectureTitle('')
+    } catch (err: any) {
+      console.error('Error submitting lecture URL:', err)
+      toast.error(err.message || 'Failed to submit lecture URL')
+    } finally {
+      setUrlUploading(false)
+    }
+  }
 
   const handleDeleteCourse = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this course? This action cannot be undone.')) return
@@ -169,63 +215,119 @@ export function FacultyDashboard() {
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <Video className="size-5 text-primary" />
-              Lecture Capture (AssemblyAI)
+              Lecture Capture & Processing
             </CardTitle>
-            <CardDescription>Upload a recorded lecture (audio or video) to automatically transcribe and segment it into topics.</CardDescription>
+            <CardDescription>Upload a recorded lecture (audio or video) or paste a video link to transcribe and segment it into topics.</CardDescription>
           </div>
           <Button asChild variant="outline" size="sm" className="border-primary/50 text-primary hover:bg-primary/10">
             <Link to="/flashcards/studio">Validate Flashcards <ArrowRight className="size-3 ml-1" /></Link>
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="border-2 border-dashed border-border/60 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-muted/30 transition-colors">
-            <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 mb-4">
-              <Video className="size-6 text-primary" />
-            </div>
-            <p className="font-semibold mb-1">Drag and drop your lecture file</p>
-            <p className="text-sm text-muted-foreground mb-4">Supports MP4, MP3, WAV (Max 500MB)</p>
-            
-            <input 
-              type="file" 
-              id="lecture-upload" 
-              className="hidden" 
-              accept="audio/*,video/*"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
+          <Tabs defaultValue="file" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-sm mb-4 bg-muted/60">
+              <TabsTrigger value="file">
+                <Video className="size-4 mr-1.5" /> Upload File
+              </TabsTrigger>
+              <TabsTrigger value="url">
+                <LinkIcon className="size-4 mr-1.5" /> Submit Link / URL
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="file">
+              <div className="border-2 border-dashed border-border/60 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-muted/30 transition-colors">
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 mb-4">
+                  <Video className="size-6 text-primary" />
+                </div>
+                <p className="font-semibold mb-1">Drag and drop your lecture file</p>
+                <p className="text-sm text-muted-foreground mb-4">Supports MP4, MP3, WAV (Max 500MB)</p>
                 
-                alert(`Starting upload and transcription for ${file.name}...\nThis may take a few minutes depending on file size.`);
-                
-                const formData = new FormData();
-                formData.append('lecture', file);
-                
-                try {
-                  const token = sessionStorage.getItem('auth_token');
-                  const res = await fetch(`${API_BASE_URL}/api/lecture/upload`, {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                  });
-                  
-                  if (!res.ok) throw new Error('Upload failed');
-                  
-                  const data = await res.json();
-                  alert(data.message || 'Upload complete! The transcript is being processed and will appear in Semantic Memory.');
-                } catch (err) {
-                  console.error('Error uploading lecture:', err);
-                  alert('Error uploading lecture. Please try again.');
-                }
-                
-                // Clear the input
-                e.target.value = '';
-              }}
-            />
-            <Button asChild className="brand-gradient text-white border-0 cursor-pointer">
-              <label htmlFor="lecture-upload">Select File</label>
-            </Button>
-          </div>
+                <input 
+                  type="file" 
+                  id="lecture-upload" 
+                  className="hidden" 
+                  accept="audio/*,video/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    
+                    toast.info(`Uploading "${file.name}"... This may take a minute.`);
+                    
+                    const formData = new FormData();
+                    formData.append('lecture', file);
+                    
+                    try {
+                      const token = sessionStorage.getItem('auth_token');
+                      const res = await fetch(`${API_BASE_URL}/api/lecture/upload`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                      });
+                      
+                      if (!res.ok) throw new Error('Upload failed');
+                      
+                      const data = await res.json();
+                      toast.success(data.message || 'Upload complete! Ingestion initiated.');
+                    } catch (err) {
+                      console.error('Error uploading lecture:', err);
+                      toast.error('Error uploading lecture. Please try again.');
+                    }
+                    
+                    // Clear the input
+                    e.target.value = '';
+                  }}
+                />
+                <Button asChild className="brand-gradient text-white border-0 cursor-pointer">
+                  <label htmlFor="lecture-upload">Select File</label>
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="url">
+              <form onSubmit={handleLectureUrlSubmit} className="space-y-4 max-w-xl mx-auto py-2">
+                <div className="space-y-1">
+                  <label htmlFor="lecture-url" className="text-sm font-medium">Lecture Link / Video URL</label>
+                  <Input 
+                    id="lecture-url"
+                    type="url"
+                    placeholder="https://www.youtube.com/watch?v=... or Loom, Google Drive video links"
+                    value={lectureUrl}
+                    onChange={(e) => setLectureUrl(e.target.value)}
+                    required
+                    disabled={urlUploading}
+                    className="bg-background"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="lecture-title" className="text-sm font-medium">Lecture Title (Optional)</label>
+                  <Input 
+                    id="lecture-title"
+                    type="text"
+                    placeholder="e.g. CS101: Lecture 5 - Database Normalization"
+                    value={lectureTitle}
+                    onChange={(e) => setLectureTitle(e.target.value)}
+                    disabled={urlUploading}
+                    className="bg-background"
+                  />
+                </div>
+                <div className="flex justify-end pt-2">
+                  <Button 
+                    type="submit" 
+                    disabled={urlUploading}
+                    className="brand-gradient text-white border-0 px-6"
+                  >
+                    {urlUploading ? (
+                      <><Loader2 className="size-4 animate-spin mr-2" /> Ingesting Link...</>
+                    ) : (
+                      'Submit Lecture Link'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 

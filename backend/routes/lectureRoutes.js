@@ -66,4 +66,37 @@ router.post('/upload', verifyToken, upload.single('lecture'), async (req, res) =
   }
 });
 
+/**
+ * @route   POST /api/lecture/upload-url
+ * @desc    Submit a lecture video/audio URL (YouTube, Loom, direct link) for transcription
+ * @access  Private
+ */
+router.post('/upload-url', verifyToken, async (req, res) => {
+  try {
+    const { url, title } = req.body;
+    if (!url) {
+      return res.status(400).json({ success: false, message: 'URL is required' });
+    }
+
+    const lectureTitle = title?.trim() || 'Recorded Lecture Link';
+
+    // Start background processing
+    lectureService.processLectureUrl(url, lectureTitle, req.userId)
+      .then(() => {
+        console.log("Lecture URL processed successfully");
+      })
+      .catch(err => {
+        console.error("Lecture URL processing failed:", err);
+      });
+
+    res.status(202).json({
+      success: true,
+      message: 'Lecture URL registered and is being processed. It will be transcribed and added to Semantic Memory shortly.'
+    });
+  } catch (error) {
+    console.error('Error handling lecture URL:', error);
+    res.status(500).json({ success: false, message: 'Failed to handle lecture URL' });
+  }
+});
+
 export default router;

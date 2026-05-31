@@ -21,6 +21,26 @@ Cogniva has evolved beyond a simple AI tutor into a **Persistent Academic Intell
 - 🗓️ **Autonomous Study Planning**: An intelligent background agent that continuously analyzes your weak spots to mathematically construct an optimized 7-day study calendar.
 - 🌳 **Dynamic Skill Trees**: Visualized learning paths that show progress and unlockable topics using React Flow.
 
+### ⚡ Advanced Classroom & Ingestion Features
+
+- 👥 **Cooperative Study Rooms & Shared Whiteboard**: Real-time room sandboxes (`/rooms`) featuring collaborative live chats, PDF document sharing, and an interactive shared canvas whiteboard powered by `tldraw`.
+- 📝 **AI-Powered Assignment Evaluator**: Automatic assignment grading. Students receive detailed AI scoring, highlighted strengths, and improvement suggestions, with a back-end interface for faculty reviews and score overrides.
+- 🎓 **Faculty Student Insights Dashboard**: A dedicated analytics dashboard for instructors (`/insights`) summarizing class-wide topic weaknesses, course difficulty levels, and student enrollment metrics.
+- 🔗 **Multi-Source Knowledge Ingestion & Lecture URL Capture**: Ingests video links, YouTube lectures, Loom recordings, and web articles directly into the vector database. Utilizes AssemblyAI (for direct media streams) or Gemini summarization fallbacks.
+- 🔀 **Active Planner Routing & Task Elimination**: The study calendar routes users directly to target learning tasks (e.g. assignments, tutors). Completing tasks instantly updates the background agent and deletes the scheduled items.
+- 🔐 **Isolated Multi-Session Sandboxing**: Token management isolated to `sessionStorage` to allow multiple concurrent user logins/tabs in a single browser window.
+
+---
+
+## 🚀 Recent Updates & Advanced Integrations (May 2026)
+
+Cogniva has been updated with several key features to support richer content ingestion, smoother offline experiences, and optimized hardware rendering:
+
+*   **URL Ingestion (Faculty Dashboard):** We extended the **Knowledge Base** to support public URLs, YouTube videos, and Loom recordings. The backend scraper downloads the text, uses Gemini to synthesize structured study guides, and embeds them into ChromaDB.
+*   **AssemblyAI URL Capture:** Faculty can submit lecture URLs (like Loom or YouTube links) directly to the **Lecture Capture** service. Uses AssemblyAI URL transcription or Gemini summaries as fallbacks, generating flashcards and semantic memory segments.
+*   **Offline SPA Router Fallback:** Upgraded `/sw.js` (Service Worker) fetch handlers to gracefully intercept network failures or offline routing requests (e.g. direct entry or refreshes on `/rooms/*`), serving cached `/index.html` to keep client-side navigation functional.
+*   **WebGL Performance Optimization:** Resolved WebGL context lost warnings by converting dynamic prop triggers (like hover status, color transitions, or hue shifts) into React refs. The WebGL context in `Orb.tsx` is now created once on mount and destroyed once on unmount.
+
 ---
 
 ## 🏗️ Architecture

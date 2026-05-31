@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { getStudentAssignments, submitAssignment, evaluateAssignment, getFacultySubmissions, overrideAssignmentScore, getCourses, getFacultyCourses } from '@/lib/api'
+import { getStudentAssignments, submitAssignment, evaluateAssignment, getFacultySubmissions, overrideAssignmentScore, getCourses, getFacultyCourses, getEnrolledCourses } from '@/lib/api'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -203,10 +203,10 @@ function StudentSubmitTab({ onSubmitted }: { onSubmitted: () => void }) {
     async function loadCourses() {
       try {
         setLoading(true)
-        const res = await getCourses()
-        setCourses(res.data)
+        const data = await getEnrolledCourses()
+        setCourses(data)
       } catch (e) {
-        toast.error('Failed to load courses')
+        toast.error('Failed to load enrolled courses')
       } finally {
         setLoading(false)
       }
@@ -309,10 +309,10 @@ function FacultySubmissionsTab() {
     async function loadFacultyCourses() {
       if (!profile?.id) return
       try {
-        const res = await getFacultyCourses(profile.id)
-        setCourses(res.data)
-        if (res.data.length > 0) {
-          setSelectedCourse(res.data[0]._id)
+        const data = await getFacultyCourses(profile.id)
+        setCourses(data)
+        if (data.length > 0) {
+          setSelectedCourse(data[0]._id)
         }
       } catch (e) {
         toast.error('Failed to load courses')
