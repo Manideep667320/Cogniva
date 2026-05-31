@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 
 interface VoiceContextType {
   isSpeaking: boolean
   isRecording: boolean
+  isHandsFreeActive: boolean
   speak: (text: string, onEnd?: () => void) => void
   stopSpeaking: () => void
   toggleRecording: () => void
@@ -15,12 +17,111 @@ const VoiceContext = createContext<VoiceContextType | undefined>(undefined)
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth()
+  const navigate = useNavigate()
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [isHandsFreeActive, setIsHandsFreeActive] = useState(false)
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const commandHandlerRef = useRef<((transcript: string) => Promise<void>) | null>(null)
+  const recognitionRef = useRef<any>(null)
+
+  // Initialize background hands-free listening
+  useEffect(() => {
+    if (!session) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop() } catch {}
+      }
+      setIsHandsFreeActive(false)
+      return
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      console.warn("Speech Recognition API not supported in this browser.")
+      return
+    }
+
+    const rec = new SpeechRecognition()
+    rec.continuous = true
+    rec.interimResults = false
+    rec.lang = 'en-US'
+
+    rec.onresult = async (event: any) => {
+      const lastResultIndex = event.results.length - 1
+      const result = event.results[lastResultIndex]
+      if (result.isFinal) {
+        const text = result[0].transcript.toLowerCase().trim()
+        console.log('🗣️ [VoiceCommand] Heard background phrase:', text)
+
+        // Wake phrase validation
+        if (text === 'hey cogniva' || text === 'cogniva') {
+          speak("I'm listening. How can I help you?")
+          return
+        }
+
+        // Voice Command Navigation
+        if (text.includes('go to dashboard') || text.includes('open dashboard')) {
+          speak("Opening your dashboard.")
+          navigate('/dashboard')
+        } else if (text.includes('go to tree') || text.includes('open skill tree') || text.includes('show skill tree')) {
+          speak("Opening your skill trees.")
+          navigate('/skill-tree')
+        } else if (text.includes('go to calendar') || text.includes('open calendar') || text.includes('show calendar')) {
+          speak("Opening your study calendar.")
+          navigate('/calendar')
+        } else if (text.includes('go to flashcards') || text.includes('open flashcards') || text.includes('show reviews')) {
+          speak("Opening your flashcard reviews.")
+          navigate('/flashcards/review')
+        } else if (text.includes('go to tutor') || text.includes('open tutor') || text.includes('talk to tutor')) {
+          speak("Launching AI Tutor.")
+          navigate('/tutor')
+        } else if (text.includes('go to rooms') || text.includes('open rooms') || text.includes('study room')) {
+          speak("Opening study rooms.")
+          navigate('/rooms')
+        } else if (text.includes('pause reading') || text.includes('stop reading') || text.includes('shut up')) {
+          stopSpeaking()
+        }
+      }
+    }
+
+    rec.onerror = (e: any) => {
+      console.error('Speech recognition error:', e)
+      // Automatically restart on transient errors (silence, no match, network)
+      if (e.error === 'not-allowed') {
+        setIsHandsFreeActive(false)
+        return
+      }
+      setTimeout(() => {
+        try { rec.start() } catch {}
+      }, 1000)
+    }
+
+    rec.onend = () => {
+      console.log('Speech recognition service ended. Restarting...')
+      // Auto-restart to keep background listener alive
+      setTimeout(() => {
+        try { rec.start() } catch {}
+      }, 1000)
+    }
+
+    recognitionRef.current = rec
+    try {
+      rec.start()
+      setIsHandsFreeActive(true)
+    } catch (err) {
+      console.error('Failed to start speech recognition:', err)
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.onend = null
+        recognitionRef.current.onerror = null
+        try { recognitionRef.current.stop() } catch {}
+      }
+    }
+  }, [session, navigate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopSpeaking = () => {
     if ('speechSynthesis' in window) {
@@ -61,9 +162,16 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       // Stop recording
       mediaRecorderRef.current?.stop()
       setIsRecording(false)
+      // Resume background recognition
+      setTimeout(() => {
+        try { recognitionRef.current?.start() } catch {}
+      }, 500)
     } else {
       // Start recording
       stopSpeaking() // stop any ongoing speech
+      
+      // Pause background listening
+      try { recognitionRef.current?.stop() } catch {}
       
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -89,6 +197,10 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.error("Microphone access denied or error:", err)
         alert("Please allow microphone access to use voice commands.")
+        // Restart background listening on fail
+        setTimeout(() => {
+          try { recognitionRef.current?.start() } catch {}
+        }, 500)
       }
     }
   }
@@ -128,6 +240,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       value={{
         isSpeaking,
         isRecording,
+        isHandsFreeActive,
         speak,
         stopSpeaking,
         toggleRecording,
