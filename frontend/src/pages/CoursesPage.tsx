@@ -23,6 +23,12 @@ interface VideoInfo {
   description?: string
 }
 
+interface ResourceInfo {
+  title: string
+  url: string
+  description?: string
+}
+
 interface Course {
   id: string
   _id?: string
@@ -36,6 +42,7 @@ interface Course {
   tags?: string[]
   is_published?: boolean
   videos?: VideoInfo[]
+  resources?: ResourceInfo[]
   created_at?: string
 }
 
@@ -77,12 +84,22 @@ export function CoursesPage() {
   const [isEnrolled, setIsEnrolled] = useState(false)
   const [enrollLoading, setEnrollLoading] = useState(false)
 
+  const [formResources, setFormResources] = useState<ResourceInfo[]>([{ title: '', url: '' }])
+
   const addVideoField = () => setFormVideos([...formVideos, { title: '', url: '' }])
   const removeVideoField = (index: number) => setFormVideos(formVideos.filter((_, i) => i !== index))
   const updateVideoField = (index: number, field: keyof VideoInfo, value: string) => {
     const newVideos = [...formVideos]
     newVideos[index] = { ...newVideos[index], [field]: value }
     setFormVideos(newVideos)
+  }
+
+  const addResourceField = () => setFormResources([...formResources, { title: '', url: '' }])
+  const removeResourceField = (index: number) => setFormResources(formResources.filter((_, i) => i !== index))
+  const updateResourceField = (index: number, field: keyof ResourceInfo, value: string) => {
+    const newResources = [...formResources]
+    newResources[index] = { ...newResources[index], [field]: value }
+    setFormResources(newResources)
   }
 
   const loadCourses = useCallback(async () => {
@@ -114,6 +131,7 @@ export function CoursesPage() {
     setFormHours('4')
     setFormTags('')
     setFormVideos([{ title: '', url: '' }])
+    setFormResources([{ title: '', url: '' }])
     setFormError(null)
     setEditingCourseId(null)
     setCreateOpen(true)
@@ -129,6 +147,7 @@ export function CoursesPage() {
     setFormError(null)
     const tags = formTags.split(',').map((t) => t.trim()).filter(Boolean)
     const videos = formVideos.filter(v => v.title.trim() && v.url.trim())
+    const resources = formResources.filter(r => r.title.trim() && r.url.trim())
     
     try {
       const payload = {
@@ -139,6 +158,7 @@ export function CoursesPage() {
         duration_hours: parseInt(formHours) || 0,
         tags,
         videos,
+        resources,
       }
       if (editingCourseId) {
         await updateCourse(editingCourseId, payload)
@@ -372,6 +392,32 @@ export function CoursesPage() {
                       </div>
                     </div>
                   )}
+
+                  {selectedCourse.resources && selectedCourse.resources.length > 0 && (
+                    <div className="grid gap-3 pt-4 border-t mt-4">
+                      <div className="flex items-center gap-2">
+                         <BookOpen className="size-4 text-primary" />
+                        <h4 className="text-sm font-semibold">Course Materials & Documents</h4>
+                      </div>
+                      <div className="grid gap-2">
+                        {selectedCourse.resources.map((res, idx) => (
+                          <a 
+                            key={idx} 
+                            href={res.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between p-3 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors group"
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium group-hover:text-primary transition-colors">{res.title}</span>
+                              {res.description && <span className="text-xs text-muted-foreground">{res.description}</span>}
+                            </div>
+                            <ArrowRight className="size-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -388,6 +434,7 @@ export function CoursesPage() {
                       setFormHours(selectedCourse.duration_hours?.toString() || '4');
                       setFormTags(selectedCourse.tags?.join(', ') || '');
                       setFormVideos(selectedCourse.videos || [{ title: '', url: '' }]);
+                      setFormResources(selectedCourse.resources || [{ title: '', url: '' }]);
                       setEditingCourseId(selectedCourse._id || selectedCourse.id);
                       setViewOpen(false);
                       setCreateOpen(true);
@@ -532,6 +579,64 @@ export function CoursesPage() {
                           variant="ghost" 
                           size="icon" 
                           onClick={() => removeVideoField(idx)}
+                          className="absolute -top-2 -right-2 size-6 rounded-full bg-background border shadow-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="size-3 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Document Resources Section */}
+            <div className="grid gap-3 pt-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Document Resources</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addResourceField} className="h-7 px-2">
+                  <Plus className="size-3 mr-1" /> Add Document
+                </Button>
+              </div>
+              <ScrollArea className={`${formResources.length > 2 ? 'h-40' : ''} pr-3`}>
+                <div className="flex flex-col gap-3">
+                  {formResources.map((res, idx) => (
+                    <div key={idx} className="grid gap-2 p-3 border rounded-lg bg-muted/30 relative group">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="grid gap-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Title</Label>
+                          <Input 
+                            placeholder="Document Title" 
+                            value={res.title} 
+                            onChange={(e) => updateResourceField(idx, 'title', e.target.value)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="grid gap-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground">File Link / URL</Label>
+                          <Input 
+                            placeholder="https://..." 
+                            value={res.url} 
+                            onChange={(e) => updateResourceField(idx, 'url', e.target.value)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-1">
+                        <Label className="text-[10px] uppercase text-muted-foreground">Description</Label>
+                        <Input 
+                          placeholder="Optional description" 
+                          value={res.description || ''} 
+                          onChange={(e) => updateResourceField(idx, 'description', e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      {formResources.length > 1 && (
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => removeResourceField(idx)}
                           className="absolute -top-2 -right-2 size-6 rounded-full bg-background border shadow-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                         >
                           <X className="size-3 text-destructive" />

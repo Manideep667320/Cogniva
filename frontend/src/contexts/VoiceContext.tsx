@@ -26,10 +26,12 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const audioChunksRef = useRef<Blob[]>([])
   const commandHandlerRef = useRef<((transcript: string) => Promise<void>) | null>(null)
   const recognitionRef = useRef<any>(null)
+  const shouldListenRef = useRef(false)
 
   // Initialize background hands-free listening
   useEffect(() => {
     if (!session) {
+      shouldListenRef.current = false
       if (recognitionRef.current) {
         try { recognitionRef.current.stop() } catch {}
       }
@@ -87,27 +89,32 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
 
     rec.onerror = (e: any) => {
-      console.error('Speech recognition error:', e)
-      // Automatically restart on transient errors (silence, no match, network)
-      if (e.error === 'not-allowed') {
-        setIsHandsFreeActive(false)
+      // Ignore transient errors (silence/no-speech and aborted are common in background listening)
+      if (e.error === 'no-speech' || e.error === 'aborted') {
         return
       }
-      setTimeout(() => {
-        try { rec.start() } catch {}
-      }, 1000)
+      console.error('Speech recognition error:', e)
+      if (e.error === 'not-allowed') {
+        shouldListenRef.current = false
+        setIsHandsFreeActive(false)
+      }
     }
 
     rec.onend = () => {
-      console.log('Speech recognition service ended. Restarting...')
-      // Auto-restart to keep background listener alive
+      // Only auto-restart if we intentionally want background listening active
+      if (!shouldListenRef.current) {
+        return
+      }
       setTimeout(() => {
-        try { rec.start() } catch {}
+        if (shouldListenRef.current) {
+          try { rec.start() } catch {}
+        }
       }, 1000)
     }
 
     recognitionRef.current = rec
     try {
+      shouldListenRef.current = true
       rec.start()
       setIsHandsFreeActive(true)
     } catch (err) {
@@ -115,6 +122,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
 
     return () => {
+      shouldListenRef.current = false
       if (recognitionRef.current) {
         recognitionRef.current.onend = null
         recognitionRef.current.onerror = null
@@ -163,14 +171,18 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       mediaRecorderRef.current?.stop()
       setIsRecording(false)
       // Resume background recognition
+      shouldListenRef.current = true
       setTimeout(() => {
-        try { recognitionRef.current?.start() } catch {}
+        if (shouldListenRef.current) {
+          try { recognitionRef.current?.start() } catch {}
+        }
       }, 500)
     } else {
       // Start recording
       stopSpeaking() // stop any ongoing speech
       
       // Pause background listening
+      shouldListenRef.current = false
       try { recognitionRef.current?.stop() } catch {}
       
       try {
@@ -198,8 +210,11 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         console.error("Microphone access denied or error:", err)
         alert("Please allow microphone access to use voice commands.")
         // Restart background listening on fail
+        shouldListenRef.current = true
         setTimeout(() => {
-          try { recognitionRef.current?.start() } catch {}
+          if (shouldListenRef.current) {
+            try { recognitionRef.current?.start() } catch {}
+          }
         }, 500)
       }
     }

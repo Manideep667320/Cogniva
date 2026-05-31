@@ -140,7 +140,7 @@ export function StudentAnalytics() {
             </CardHeader>
             <CardContent className="h-[300px]">
               {radarData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
+                <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1} initialDimension={{ width: 300, height: 200 }}>
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                     <PolarGrid stroke="currentColor" className="text-border" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: 'currentColor', fontSize: 12 }} className="text-muted-foreground" />
@@ -165,7 +165,7 @@ export function StudentAnalytics() {
               <CardDescription>Daily volume of spaced repetition flashcards reviewed.</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1} initialDimension={{ width: 300, height: 200 }}>
                 <BarChart data={data?.consistencyData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border/50" />
                   <XAxis 
@@ -197,7 +197,7 @@ export function StudentAnalytics() {
               <CardDescription>Average time taken to recall answers (Lower is better). Last 14 days.</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1} initialDimension={{ width: 300, height: 200 }}>
                 <LineChart data={data?.focusTrends}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border/50" />
                   <XAxis dataKey="date" stroke="currentColor" className="text-muted-foreground text-xs" tickMargin={10} />
@@ -229,7 +229,7 @@ export function StudentAnalytics() {
               <CardDescription>Volume of reviews vs. Accuracy rate over recent weeks.</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1} initialDimension={{ width: 300, height: 200 }}>
                 <AreaChart data={data?.velocityData}>
                   <defs>
                     <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">

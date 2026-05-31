@@ -12,6 +12,7 @@ import { Loader2, CheckCircle, FileText, Send, AlertCircle, Bot, User as UserIco
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 export function AssignmentsPage() {
   const { user, profile } = useAuth()
@@ -101,88 +102,90 @@ function StudentHistoryTab() {
   }
 
   return (
-    <div className="space-y-4">
-      {assignments.map(a => (
-        <Card key={a._id} className="overflow-hidden">
-          <CardHeader className="bg-muted/30 pb-4">
-            <div className="flex items-start justify-between">
+    <ScrollArea className="h-[calc(100vh-220px)] pr-4">
+      <div className="space-y-4 pb-4">
+        {assignments.map(a => (
+          <Card key={a._id} className="overflow-hidden">
+            <CardHeader className="bg-muted/30 pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle>{a.title}</CardTitle>
+                  <CardDescription>{a.course_id?.title}</CardDescription>
+                </div>
+                <Badge variant={a.status === 'evaluated' ? 'default' : a.status === 'reviewed' ? 'secondary' : 'outline'}>
+                  {a.status}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
               <div>
-                <CardTitle>{a.title}</CardTitle>
-                <CardDescription>{a.course_id?.title}</CardDescription>
+                <h4 className="font-medium text-sm text-muted-foreground mb-1">Question</h4>
+                <p className="text-sm bg-muted/50 p-3 rounded-md">{a.question_text}</p>
               </div>
-              <Badge variant={a.status === 'evaluated' ? 'default' : a.status === 'reviewed' ? 'secondary' : 'outline'}>
-                {a.status}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4 space-y-4">
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Question</h4>
-              <p className="text-sm bg-muted/50 p-3 rounded-md">{a.question_text}</p>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Your Answer</h4>
-              <p className="text-sm whitespace-pre-wrap border p-3 rounded-md">{a.student_answer}</p>
-            </div>
-            
-            {a.status === 'pending' && (
-              <div className="flex justify-end pt-2">
-                <Button 
-                  onClick={() => handleEvaluate(a._id)} 
-                  disabled={evaluatingId === a._id}
-                >
-                  {evaluatingId === a._id ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Evaluating with AI...</>
-                  ) : (
-                    <><Bot className="mr-2 h-4 w-4" /> Get AI Feedback</>
-                  )}
-                </Button>
+              <div>
+                <h4 className="font-medium text-sm text-muted-foreground mb-1">Your Answer</h4>
+                <p className="text-sm whitespace-pre-wrap border p-3 rounded-md">{a.student_answer}</p>
               </div>
-            )}
+              
+              {a.status === 'pending' && (
+                <div className="flex justify-end pt-2">
+                  <Button 
+                    onClick={() => handleEvaluate(a._id)} 
+                    disabled={evaluatingId === a._id}
+                  >
+                    {evaluatingId === a._id ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Evaluating with AI...</>
+                    ) : (
+                      <><Bot className="mr-2 h-4 w-4" /> Get AI Feedback</>
+                    )}
+                  </Button>
+                </div>
+              )}
 
-            {(a.status === 'evaluated' || a.status === 'reviewed') && a.ai_evaluation && (
-              <div className="mt-4 border rounded-lg p-4 bg-primary/5 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Bot className="h-5 w-5 text-primary" />
-                  <h3 className="font-semibold text-lg">AI Feedback</h3>
-                  <div className="ml-auto text-xl font-bold text-primary">
-                    {a.ai_evaluation.score}/100
+              {(a.status === 'evaluated' || a.status === 'reviewed') && a.ai_evaluation && (
+                <div className="mt-4 border rounded-lg p-4 bg-primary/5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-lg">AI Feedback</h3>
+                    <div className="ml-auto text-xl font-bold text-primary">
+                      {a.ai_evaluation.score}/100
+                    </div>
                   </div>
-                </div>
-                
-                <p className="text-sm">{a.ai_evaluation.feedback}</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                  {a.ai_evaluation.strengths?.length > 0 && (
-                    <div className="space-y-1">
-                      <h4 className="font-medium text-sm text-green-600 dark:text-green-400 flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Strengths</h4>
-                      <ul className="list-disc list-inside text-sm text-muted-foreground">
-                        {a.ai_evaluation.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}
-                      </ul>
+                  
+                  <p className="text-sm">{a.ai_evaluation.feedback}</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    {a.ai_evaluation.strengths?.length > 0 && (
+                      <div className="space-y-1">
+                        <h4 className="font-medium text-sm text-green-600 dark:text-green-400 flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Strengths</h4>
+                        <ul className="list-disc list-inside text-sm text-muted-foreground">
+                          {a.ai_evaluation.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {a.ai_evaluation.weaknesses?.length > 0 && (
+                      <div className="space-y-1">
+                        <h4 className="font-medium text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Areas to Improve</h4>
+                        <ul className="list-disc list-inside text-sm text-muted-foreground">
+                          {a.ai_evaluation.weaknesses.map((w: string, i: number) => <li key={i}>{w}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {a.faculty_override_score !== null && (
+                    <div className="mt-4 pt-4 border-t border-primary/10 flex items-center gap-2 text-sm">
+                      <UserIcon className="h-4 w-4 text-orange-500" />
+                      <span>Faculty reviewed this submission. Final Score: <strong>{a.faculty_override_score}/100</strong></span>
                     </div>
                   )}
-                  {a.ai_evaluation.weaknesses?.length > 0 && (
-                    <div className="space-y-1">
-                      <h4 className="font-medium text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Areas to Improve</h4>
-                      <ul className="list-disc list-inside text-sm text-muted-foreground">
-                        {a.ai_evaluation.weaknesses.map((w: string, i: number) => <li key={i}>{w}</li>)}
-                      </ul>
-                    </div>
-                  )}
                 </div>
-                
-                {a.faculty_override_score !== null && (
-                  <div className="mt-4 pt-4 border-t border-primary/10 flex items-center gap-2 text-sm">
-                    <UserIcon className="h-4 w-4 text-orange-500" />
-                    <span>Faculty reviewed this submission. Final Score: <strong>{a.faculty_override_score}/100</strong></span>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </ScrollArea>
   )
 }
 
@@ -304,9 +307,9 @@ function FacultySubmissionsTab() {
 
   useEffect(() => {
     async function loadFacultyCourses() {
-      if (!profile?._id) return
+      if (!profile?.id) return
       try {
-        const res = await getFacultyCourses(profile._id)
+        const res = await getFacultyCourses(profile.id)
         setCourses(res.data)
         if (res.data.length > 0) {
           setSelectedCourse(res.data[0]._id)
@@ -316,7 +319,7 @@ function FacultySubmissionsTab() {
       }
     }
     loadFacultyCourses()
-  }, [profile?._id])
+  }, [profile?.id])
 
   useEffect(() => {
     if (selectedCourse) {
@@ -380,64 +383,66 @@ function FacultySubmissionsTab() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {submissions.map(a => (
-            <Card key={a._id}>
-              <CardHeader className="bg-muted/30 pb-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{a.title}</CardTitle>
-                    <CardDescription>Submitted by: {a.user_id?.full_name || 'Student'}</CardDescription>
+        <ScrollArea className="h-[calc(100vh-280px)] pr-4">
+          <div className="space-y-4 pb-4">
+            {submissions.map(a => (
+              <Card key={a._id}>
+                <CardHeader className="bg-muted/30 pb-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{a.title}</CardTitle>
+                      <CardDescription>Submitted by: {a.user_id?.full_name || 'Student'}</CardDescription>
+                    </div>
+                    <Badge variant={a.status === 'reviewed' ? 'secondary' : a.status === 'evaluated' ? 'default' : 'outline'}>
+                      {a.status}
+                    </Badge>
                   </div>
-                  <Badge variant={a.status === 'reviewed' ? 'secondary' : a.status === 'evaluated' ? 'default' : 'outline'}>
-                    {a.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Question</h4>
-                    <p className="text-sm border p-3 rounded-md bg-muted/10 h-32 overflow-y-auto">{a.question_text}</p>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium text-sm text-muted-foreground mb-1">Question</h4>
+                      <p className="text-sm border p-3 rounded-md bg-muted/10 h-32 overflow-y-auto">{a.question_text}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm text-muted-foreground mb-1">Answer</h4>
+                      <p className="text-sm border p-3 rounded-md h-32 overflow-y-auto whitespace-pre-wrap">{a.student_answer}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Answer</h4>
-                    <p className="text-sm border p-3 rounded-md h-32 overflow-y-auto whitespace-pre-wrap">{a.student_answer}</p>
-                  </div>
-                </div>
 
-                {a.status !== 'pending' && a.ai_evaluation && (
-                  <div className="border rounded-md p-4 bg-primary/5">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> AI Evaluation</h4>
-                      <span className="font-bold">Score: {a.ai_evaluation.score}/100</span>
+                  {a.status !== 'pending' && a.ai_evaluation && (
+                    <div className="border rounded-md p-4 bg-primary/5">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> AI Evaluation</h4>
+                        <span className="font-bold">Score: {a.ai_evaluation.score}/100</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">{a.ai_evaluation.feedback}</p>
+                      
+                      <div className="flex items-center gap-3 pt-3 mt-3 border-t">
+                        <Label>Override Score:</Label>
+                        <Input 
+                          type="number" 
+                          min="0" max="100" 
+                          className="w-24 h-8"
+                          placeholder={a.faculty_override_score !== null ? String(a.faculty_override_score) : ''}
+                          value={overrideScores[a._id] !== undefined ? overrideScores[a._id] : (a.faculty_override_score !== null ? String(a.faculty_override_score) : '')}
+                          onChange={e => setOverrideScores(prev => ({...prev, [a._id]: e.target.value}))}
+                        />
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleOverride(a._id)}
+                          disabled={overridingId === a._id || !overrideScores[a._id]}
+                        >
+                          {overridingId === a._id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Score'}
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">{a.ai_evaluation.feedback}</p>
-                    
-                    <div className="flex items-center gap-3 pt-3 mt-3 border-t">
-                      <Label>Override Score:</Label>
-                      <Input 
-                        type="number" 
-                        min="0" max="100" 
-                        className="w-24 h-8"
-                        placeholder={a.faculty_override_score !== null ? String(a.faculty_override_score) : ''}
-                        value={overrideScores[a._id] !== undefined ? overrideScores[a._id] : (a.faculty_override_score !== null ? String(a.faculty_override_score) : '')}
-                        onChange={e => setOverrideScores(prev => ({...prev, [a._id]: e.target.value}))}
-                      />
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleOverride(a._id)}
-                        disabled={overridingId === a._id || !overrideScores[a._id]}
-                      >
-                        {overridingId === a._id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Score'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </ScrollArea>
       )}
     </div>
   )

@@ -36,6 +36,7 @@ import { useAuth } from '@/contexts/AuthContext'
 
 const studentNav = [
     { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+    { title: 'Analytics', url: '/analytics', icon: Activity },
     { title: 'Leaderboard', url: '/leaderboard', icon: Trophy },
     { title: 'Skill Trees', url: '/skill-tree', icon: GitBranch },
     { title: 'AI Tutor', url: '/tutor', icon: Bot },

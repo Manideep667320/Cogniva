@@ -4,7 +4,7 @@ import { asyncHandler } from '../middlewares/errorHandler.js'
 
 // POST /api/course
 export const createCourse = asyncHandler(async (req, res) => {
-  const { title, description, content, level, duration_hours, tags } = req.body
+  const { title, description, content, level, duration_hours, tags, videos, resources } = req.body
   const facultyId = req.userDb._id
   const facultyName = req.userDb.full_name
 
@@ -32,6 +32,8 @@ export const createCourse = asyncHandler(async (req, res) => {
     level: level || 'Beginner',
     duration_hours: duration_hours || 4,
     tags: tags || [],
+    videos: videos || [],
+    resources: resources || [],
     is_published: false,
   })
 
@@ -105,7 +107,7 @@ export const getCourseById = asyncHandler(async (req, res) => {
 // PUT /api/course/:id
 export const updateCourse = asyncHandler(async (req, res) => {
   const { id } = req.params
-  const { title, description, content, level, duration_hours, tags, is_published } = req.body
+  const { title, description, content, level, duration_hours, tags, is_published, videos, resources } = req.body
   const userId = req.userDb._id
 
   const course = await Course.findById(id)
@@ -133,6 +135,8 @@ export const updateCourse = asyncHandler(async (req, res) => {
   if (duration_hours) course.duration_hours = duration_hours
   if (tags) course.tags = tags
   if (typeof is_published !== 'undefined') course.is_published = is_published
+  if (videos) course.videos = videos
+  if (resources) course.resources = resources
 
   course.updated_at = Date.now()
   await course.save()

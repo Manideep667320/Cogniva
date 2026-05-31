@@ -66,6 +66,13 @@ const courseSchema = new mongoose.Schema(
         duration_seconds: { type: Number, default: 0 },
       },
     ],
+    resources: [
+      {
+        title: { type: String, required: true },
+        url: { type: String, required: true },
+        description: { type: String, default: '' },
+      },
+    ],
     created_at: {
       type: Date,
       default: Date.now,

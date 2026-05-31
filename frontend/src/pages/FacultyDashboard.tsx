@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { useAuth } from '@/contexts/AuthContext'
-import { getFacultyCourses, getFacultyStats } from '@/lib/api'
+import { getFacultyCourses, getFacultyStats, deleteCourse } from '@/lib/api'
 import { API_BASE_URL } from '@/lib/api'
 
 interface Course {
@@ -289,7 +289,3 @@ export function FacultyDashboard() {
     </AppLayout>
   )
 }
-function deleteCourse(id: string) {
-  throw new Error('Function not implemented.')
-}
-
