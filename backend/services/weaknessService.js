@@ -1,4 +1,7 @@
 import ReviewState from '../models/ReviewState.js';
+import Flashcard from '../models/Flashcard.js';
+import { Enrollment } from '../models/Enrollment.js';
+import { Course } from '../models/Course.js';
 
 class WeaknessService {
   
@@ -41,16 +44,63 @@ class WeaknessService {
   async getPriorityQueue(userId) {
     const now = new Date();
 
-    // Find all review states for the user where due date has passed or is imminent
+    try {
+      // 1. Fetch courses student is enrolled in
+      const enrollments = await Enrollment.find({ user_id: userId });
+      const courseIds = enrollments.map(e => e.course_id);
+
+      // 2. Fetch faculty IDs for those enrolled courses
+      const enrolledCourses = await Course.find({ _id: { $in: courseIds } });
+      const facultyIds = enrolledCourses.map(c => c.faculty_id);
+
+      // 3. Find approved flashcards belonging to either the student or their course instructors
+      const approvedCards = await Flashcard.find({
+        userId: { $in: [userId, ...facultyIds] },
+        status: 'approved'
+      });
+      const approvedCardIds = approvedCards.map(c => c._id);
+
+      // 4. Find which of these approved flashcards already have a ReviewState
+      const existingStates = await ReviewState.find({
+        userId,
+        flashcardId: { $in: approvedCardIds }
+      });
+      const existingCardIds = new Set(existingStates.map(state => state.flashcardId.toString()));
+
+      // 5. Automatically initialize ReviewState for missing approved flashcards (due immediately)
+      const missingCards = approvedCards.filter(card => !existingCardIds.has(card._id.toString()));
+      if (missingCards.length > 0) {
+        const statesToInsert = missingCards.map(card => ({
+          userId,
+          flashcardId: card._id,
+          due: new Date()
+        }));
+        try {
+          await ReviewState.insertMany(statesToInsert, { ordered: false });
+        } catch (insertErr) {
+          // Ignore duplicate key warnings in case of concurrency
+          console.warn('[WeaknessService] insertMany ReviewState warning:', insertErr.message);
+        }
+      }
+    } catch (dbErr) {
+      console.error('[WeaknessService] Error initializing ReviewState records:', dbErr);
+    }
+
+    // 6. Find all review states for the user due within the next 24 hours
     const dueCards = await ReviewState.find({
       userId,
       due: { $lte: new Date(now.getTime() + 24 * 60 * 60 * 1000) } // due within next 24 hours
     }).populate('flashcardId');
 
+    // 7. Filter to ensure we only queue valid, currently approved flashcards
+    const validDueCards = dueCards.filter(cardState => 
+      cardState.flashcardId && cardState.flashcardId.status === 'approved'
+    );
+
     // Calculate priority:
     // FSRS Urgency = (Now - DueDate) in days
     // Priority = Urgency + WeaknessScore
-    const queue = dueCards.map(cardState => {
+    const queue = validDueCards.map(cardState => {
       const urgencyDays = (now - new Date(cardState.due)) / (1000 * 60 * 60 * 24);
       const weaknessScore = this.calculateWeaknessScore(cardState);
       
@@ -69,7 +119,7 @@ class WeaknessService {
 
     // Return the sorted list of actual flashcards
     return queue.map(q => ({
-      ...q.flashcardId, // The populated flashcard
+      ...q.flashcardId.toObject ? q.flashcardId.toObject() : q.flashcardId, // The populated flashcard
       reviewState: {
         state: q.state,
         difficulty: q.difficulty,
