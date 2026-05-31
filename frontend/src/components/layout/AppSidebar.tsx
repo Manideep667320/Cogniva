@@ -52,6 +52,7 @@ const facultyNav = [
     { title: 'Manage Courses', url: '/courses', icon: BookOpen },
     { title: 'Assignments', url: '/assignments', icon: FileText },
     { title: 'Knowledge Base', url: '/resources', icon: Upload },
+    { title: 'Flashcard Studio', url: '/flashcards/studio', icon: BrainCircuit },
     { title: 'Student Insights', url: '/insights', icon: GraduationCap },
     { title: 'Settings', url: '/settings', icon: Settings },
 ]
