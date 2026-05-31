@@ -41,6 +41,10 @@ const uploadSchema = new mongoose.Schema(
       ref: 'SkillTree',
       default: null,
     },
+    url: {
+      type: String,
+      default: null,
+    },
     status: {
       type: String,
       enum: ['uploaded', 'extracting', 'chunking', 'embedding', 'generating_tree', 'completed', 'error'],

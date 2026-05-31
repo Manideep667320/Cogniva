@@ -3,7 +3,7 @@ import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
-import { uploadFile, listUploads, getUploadStatus, deleteUpload } from '../controllers/uploadController.js'
+import { uploadFile, listUploads, getUploadStatus, deleteUpload, uploadUrl } from '../controllers/uploadController.js'
 import verifyToken from '../middlewares/auth.js'
 
 const router = express.Router()
@@ -47,6 +47,9 @@ router.use(verifyToken)
 
 // POST /api/upload — Upload a file
 router.post('/', upload.single('file'), uploadFile)
+
+// POST /api/upload/url — Add a resource from a URL (YouTube, Loom, Webpage)
+router.post('/url', uploadUrl)
 
 // GET /api/upload — List user's uploads
 router.get('/', listUploads)

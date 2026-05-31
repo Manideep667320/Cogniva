@@ -8,7 +8,10 @@ import {
   AlertCircle, 
   Clock, 
   Search,
-  Plus
+  Plus,
+  Link as LinkIcon,
+  Globe,
+  Video
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,8 +19,10 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { getUploads, uploadFile, deleteUpload } from '@/lib/api'
+import { getUploads, uploadFile, deleteUpload, uploadUrlResource } from '@/lib/api'
 import { formatDistanceToNow } from 'date-fns'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { toast } from 'sonner'
 
 interface UploadRecord {
   _id: string
@@ -26,6 +31,9 @@ interface UploadRecord {
   status: 'uploaded' | 'extracting' | 'chunking' | 'embedding' | 'generating_tree' | 'completed' | 'error'
   error_message?: string
   created_at: string
+  mime_type?: string
+  filename?: string
+  url?: string
 }
 
 export function ResourcesPage() {
@@ -34,6 +42,11 @@ export function ResourcesPage() {
   const [uploading, setUploading] = useState(false)
   const [search, setSearch] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // URL Resource States
+  const [urlVal, setUrlVal] = useState('')
+  const [urlTitle, setUrlTitle] = useState('')
+  const [urlUploading, setUrlUploading] = useState(false)
 
   useEffect(() => {
     loadUploads()
@@ -59,13 +72,37 @@ export function ResourcesPage() {
     setUploading(true)
     try {
       await uploadFile(file)
+      toast.success('File uploaded successfully! AI ingestion initiated.')
       loadUploads()
     } catch (err) {
       console.error('Upload failed:', err)
-      alert(err instanceof Error ? err.message : 'Upload failed')
+      toast.error(err instanceof Error ? err.message : 'Upload failed')
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handleUrlSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!urlVal.trim()) {
+      toast.error('Please enter a valid URL')
+      return
+    }
+
+    setUrlUploading(true)
+    try {
+      const title = urlTitle.trim() || 'URL Resource'
+      await uploadUrlResource(urlVal.trim(), title)
+      toast.success('URL registered successfully! AI ingestion initiated.')
+      setUrlVal('')
+      setUrlTitle('')
+      loadUploads()
+    } catch (err: any) {
+      console.error('URL resource upload failed:', err)
+      toast.error(err instanceof Error ? err.message : 'Failed to register URL resource')
+    } finally {
+      setUrlUploading(false)
     }
   }
 
@@ -96,7 +133,10 @@ export function ResourcesPage() {
     }
   }
 
-  const formatSize = (bytes: number) => {
+  const formatSize = (bytes: number, upload: UploadRecord) => {
+    if (upload.mime_type === 'text/html' || upload.filename?.startsWith('url_')) {
+      return 'Web Link'
+    }
     if (bytes === 0) return '0 B'
     const k = 1024
     const sizes = ['B', 'KB', 'MB', 'GB']
@@ -107,39 +147,116 @@ export function ResourcesPage() {
   return (
     <AppLayout 
       title="Knowledge Base" 
-      description="Manage the research papers and documents that power your AI Tutor."
+      description="Manage the research papers, documents, and online media resources that power your AI Tutor."
     >
       <div className="flex flex-col gap-6">
-        {/* Upload Card */}
-        <Card className="border-dashed border-2 bg-muted/30">
-          <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="flex size-14 items-center justify-center rounded-2xl brand-gradient mb-4 shadow-lg shadow-primary/20">
-              {uploading ? <Loader2 className="size-7 text-white animate-spin" /> : <UploadIcon className="size-7 text-white" />}
-            </div>
-            <div className="max-w-xs space-y-2">
-              <h3 className="font-semibold text-lg">{uploading ? 'Processing Resource...' : 'Upload Knowledge Source'}</h3>
-              <p className="text-sm text-muted-foreground">
-                Upload PDFs, Text files, or Markdown papers. The AI will learn from these to tutor your students.
-              </p>
-            </div>
-            <div className="mt-6">
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                className="hidden" 
-                accept=".pdf,.txt,.md"
-              />
-              <Button 
-                onClick={() => fileInputRef.current?.click()} 
-                disabled={uploading}
-                className="brand-gradient text-white border-0 px-8"
-              >
-                {uploading ? 'Uploading...' : <><Plus className="size-4 mr-2" /> Select File</>}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="file" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mb-4 bg-muted/60">
+            <TabsTrigger value="file">
+              <UploadIcon className="size-4 mr-2" /> Upload File
+            </TabsTrigger>
+            <TabsTrigger value="url">
+              <LinkIcon className="size-4 mr-2" /> Add URL / Media Link
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="file">
+            {/* Upload Card */}
+            <Card className="border-dashed border-2 bg-muted/30">
+              <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="flex size-14 items-center justify-center rounded-2xl brand-gradient mb-4 shadow-lg shadow-primary/20">
+                  {uploading ? <Loader2 className="size-7 text-white animate-spin" /> : <UploadIcon className="size-7 text-white" />}
+                </div>
+                <div className="max-w-xs space-y-2">
+                  <h3 className="font-semibold text-lg">{uploading ? 'Processing Resource...' : 'Upload Knowledge Source'}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload PDFs, Text files, or Markdown papers. The AI will learn from these to tutor your students.
+                  </p>
+                </div>
+                <div className="mt-6">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange} 
+                    className="hidden" 
+                    accept=".pdf,.txt,.md"
+                  />
+                  <Button 
+                    onClick={() => fileInputRef.current?.click()} 
+                    disabled={uploading}
+                    className="brand-gradient text-white border-0 px-8"
+                  >
+                    {uploading ? 'Uploading...' : <><Plus className="size-4 mr-2" /> Select File</>}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="url">
+            {/* URL Input Form */}
+            <Card className="border-dashed border-2 bg-muted/30">
+              <CardContent className="py-8 px-6">
+                <form onSubmit={handleUrlSubmit} className="space-y-4 max-w-2xl mx-auto">
+                  <div className="text-center mb-6">
+                    <div className="flex size-14 items-center justify-center rounded-2xl brand-gradient mb-3 shadow-lg shadow-primary/20 mx-auto">
+                      {urlUploading ? <Loader2 className="size-7 text-white animate-spin" /> : <LinkIcon className="size-7 text-white" />}
+                    </div>
+                    <h3 className="font-semibold text-lg">Add Web URL or Recorded Video</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Add YouTube videos, Loom recordings, web articles, or lecture URLs. The AI will scrape and learn from the text content.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="url-input" className="text-sm font-semibold text-foreground">
+                      Resource URL <span className="text-destructive">*</span>
+                    </label>
+                    <Input 
+                      id="url-input"
+                      type="url"
+                      placeholder="https://www.youtube.com/watch?v=... or https://loom.com/..."
+                      value={urlVal}
+                      onChange={(e) => setUrlVal(e.target.value)}
+                      required
+                      className="bg-background"
+                      disabled={urlUploading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="url-title" className="text-sm font-semibold text-foreground">
+                      Resource Title (Optional)
+                    </label>
+                    <Input 
+                      id="url-title"
+                      type="text"
+                      placeholder="e.g. Introduction to Neural Networks"
+                      value={urlTitle}
+                      onChange={(e) => setUrlTitle(e.target.value)}
+                      className="bg-background"
+                      disabled={urlUploading}
+                    />
+                  </div>
+
+                  <div className="pt-2 flex justify-end">
+                    <Button 
+                      type="submit" 
+                      disabled={urlUploading}
+                      className="brand-gradient text-white border-0 px-8 w-full sm:w-auto"
+                    >
+                      {urlUploading ? (
+                        <><Loader2 className="size-4 animate-spin mr-2" /> Scraping & Ingesting...</>
+                      ) : (
+                        <><Plus className="size-4 mr-2" /> Add URL Resource</>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* List Section */}
         <div className="space-y-4">
@@ -167,23 +284,66 @@ export function ResourcesPage() {
             ) : (
               filtered.map((upload) => {
                 const status = getStatusInfo(upload.status)
+                const isUrl = upload.mime_type === 'text/html' || upload.filename?.startsWith('url_')
+                const isYoutube = isUrl && (
+                  upload.url?.includes('youtube.com') || 
+                  upload.url?.includes('youtu.be') || 
+                  upload.original_name.toLowerCase().includes('youtube')
+                )
+                const isRecorded = isUrl && !isYoutube && (
+                  upload.url?.includes('loom.com') ||
+                  upload.url?.includes('vimeo') ||
+                  upload.url?.includes('drive.google')
+                )
+
+                // Select Icon
+                let ResourceIcon = File
+                let iconColor = 'text-primary'
+                let iconBg = 'bg-primary/10'
+
+                if (isYoutube) {
+                  ResourceIcon = Video
+                  iconColor = 'text-red-500'
+                  iconBg = 'bg-red-500/10'
+                } else if (isRecorded) {
+                  ResourceIcon = Video
+                  iconColor = 'text-amber-500'
+                  iconBg = 'bg-amber-500/10'
+                } else if (isUrl) {
+                  ResourceIcon = LinkIcon
+                  iconColor = 'text-blue-500'
+                  iconBg = 'bg-blue-500/10'
+                }
+
                 return (
                   <Card key={upload._id} className="overflow-hidden hover:shadow-md transition-shadow group">
                     <CardContent className="p-0">
                       <div className="flex items-center gap-4 p-4">
-                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
-                          <File className="size-5 text-primary" />
+                        <div className={`flex size-10 items-center justify-center rounded-lg ${iconBg} shrink-0`}>
+                          <ResourceIcon className={`size-5 ${iconColor}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-semibold truncate max-w-[200px] sm:max-w-[400px]">{upload.original_name}</h4>
+                            <h4 className="text-sm font-semibold truncate max-w-[200px] sm:max-w-[400px]">
+                              {upload.original_name}
+                            </h4>
                             <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 shrink-0 ${status.bg} ${status.color} border-0`}>
                               <status.icon className={`size-2.5 mr-1 ${status.spin ? 'animate-spin' : ''}`} />
                               {status.label}
                             </Badge>
                           </div>
+                          {upload.url && (
+                            <a 
+                              href={upload.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline block truncate max-w-[200px] sm:max-w-[400px] mt-0.5"
+                            >
+                              {upload.url}
+                            </a>
+                          )}
                           <div className="flex items-center gap-3 mt-1">
-                            <span className="text-xs text-muted-foreground">{formatSize(upload.file_size)}</span>
+                            <span className="text-xs text-muted-foreground">{formatSize(upload.file_size, upload)}</span>
                             <span className="text-xs text-muted-foreground">•</span>
                             <span className="text-xs text-muted-foreground">
                               {formatDistanceToNow(new Date(upload.created_at))} ago

@@ -293,6 +293,22 @@ export async function uploadFile(file: File) {
   return data.data
 }
 
+export async function uploadUrlResource(url: string, originalName: string) {
+  const response = await fetch(`${API_BASE_URL}/api/upload/url`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ url, original_name: originalName }),
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.message || 'Failed to add URL resource')
+  }
+
+  const data = await response.json()
+  return data.data
+}
+
 export async function getUploads() {
   const response = await fetch(`${API_BASE_URL}/api/upload`, {
     headers: getHeaders(),
