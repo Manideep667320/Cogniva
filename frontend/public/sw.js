@@ -89,7 +89,15 @@ self.addEventListener('fetch', event => {
 
             return response;
           }
-        );
+        ).catch(() => {
+          // If it's a page route (no extension), fallback to cached index.html for SPA offline support
+          const url = new URL(event.request.url);
+          if (!url.pathname.includes('.')) {
+            return caches.match('/index.html');
+          }
+          // Otherwise, return a service unavailable response or let it fail gracefully
+          return new Response('Network error occurred', { status: 480, statusText: 'Network Error' });
+        });
       })
   );
 });

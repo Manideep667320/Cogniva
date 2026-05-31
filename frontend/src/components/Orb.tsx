@@ -193,6 +193,18 @@ export default function Orb({
     }
   `;
 
+  const hueRef = useRef(hue);
+  const hoverIntensityRef = useRef(hoverIntensity);
+  const rotateOnHoverRef = useRef(rotateOnHover);
+  const forceHoverStateRef = useRef(forceHoverState);
+  const backgroundColorRef = useRef(backgroundColor);
+
+  useEffect(() => { hueRef.current = hue; }, [hue]);
+  useEffect(() => { hoverIntensityRef.current = hoverIntensity; }, [hoverIntensity]);
+  useEffect(() => { rotateOnHoverRef.current = rotateOnHover; }, [rotateOnHover]);
+  useEffect(() => { forceHoverStateRef.current = forceHoverState; }, [forceHoverState]);
+  useEffect(() => { backgroundColorRef.current = backgroundColor; }, [backgroundColor]);
+
   useEffect(() => {
     const container = ctnDom.current;
     if (!container) return;
@@ -211,11 +223,11 @@ export default function Orb({
         iResolution: {
           value: new Vec3(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height)
         },
-        hue: { value: hue },
+        hue: { value: hueRef.current },
         hover: { value: 0 },
         rot: { value: 0 },
-        hoverIntensity: { value: hoverIntensity },
-        backgroundColor: { value: hexToVec3(backgroundColor) }
+        hoverIntensity: { value: hoverIntensityRef.current },
+        backgroundColor: { value: hexToVec3(backgroundColorRef.current) }
       }
     });
 
@@ -271,17 +283,17 @@ export default function Orb({
       const dt = (t - lastTime) * 0.001;
       lastTime = t;
       program.uniforms.iTime.value = t * 0.001;
-      program.uniforms.hue.value = hue;
-      program.uniforms.hoverIntensity.value = hoverIntensity;
+      program.uniforms.hue.value = hueRef.current;
+      program.uniforms.hoverIntensity.value = hoverIntensityRef.current;
 
-      const effectiveHover = forceHoverState ? 1 : targetHover;
+      const effectiveHover = forceHoverStateRef.current ? 1 : targetHover;
       program.uniforms.hover.value += (effectiveHover - program.uniforms.hover.value) * 0.1;
 
-      if (rotateOnHover && effectiveHover > 0.5) {
+      if (rotateOnHoverRef.current && effectiveHover > 0.5) {
         currentRot += dt * rotationSpeed;
       }
       program.uniforms.rot.value = currentRot;
-      program.uniforms.backgroundColor.value = hexToVec3(backgroundColor);
+      program.uniforms.backgroundColor.value = hexToVec3(backgroundColorRef.current);
 
       renderer.render({ scene: mesh });
     };
@@ -295,7 +307,7 @@ export default function Orb({
       container.removeChild(gl.canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, [hue, hoverIntensity, rotateOnHover, forceHoverState, backgroundColor]);
+  }, []);
 
   return <div ref={ctnDom} className="orb-container" />;
 }
