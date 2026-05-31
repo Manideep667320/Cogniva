@@ -143,15 +143,15 @@ export function ResourcesPage() {
 
         {/* List Section */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="text-xl font-bold tracking-tight">Your Resources</h2>
-            <div className="relative w-64">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input 
                 placeholder="Search resources..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9"
+                className="pl-9 h-9 w-full"
               />
             </div>
           </div>
@@ -176,8 +176,8 @@ export function ResourcesPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-semibold truncate max-w-[300px]">{upload.original_name}</h4>
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${status.bg} ${status.color} border-0`}>
+                            <h4 className="text-sm font-semibold truncate max-w-[200px] sm:max-w-[400px]">{upload.original_name}</h4>
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 shrink-0 ${status.bg} ${status.color} border-0`}>
                               <status.icon className={`size-2.5 mr-1 ${status.spin ? 'animate-spin' : ''}`} />
                               {status.label}
                             </Badge>
@@ -194,7 +194,7 @@ export function ResourcesPage() {
                           variant="ghost" 
                           size="icon" 
                           onClick={() => handleDelete(upload._id)}
-                          className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-muted-foreground hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                         >
                           <Trash2 className="size-4" />
                         </Button>

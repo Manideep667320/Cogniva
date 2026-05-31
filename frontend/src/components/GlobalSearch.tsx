@@ -52,7 +52,7 @@ export function GlobalSearch() {
 
       setLoading(true)
       try {
-        const token = localStorage.getItem('auth_token')
+        const token = sessionStorage.getItem('auth_token')
         const res = await fetch(`${API_BASE_URL}/api/memory/search`, {
           method: 'POST',
           headers: {

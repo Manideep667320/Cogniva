@@ -28,7 +28,7 @@ export function FlashcardStudio() {
 
   const fetchDrafts = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = sessionStorage.getItem('auth_token')
       const res = await fetch(`${API_BASE_URL}/api/flashcards/drafts`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -45,7 +45,7 @@ export function FlashcardStudio() {
 
   const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = sessionStorage.getItem('auth_token')
       const body: any = { status }
       
       if (editingId === id) {

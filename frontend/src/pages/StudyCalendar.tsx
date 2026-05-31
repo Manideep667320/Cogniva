@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Calendar } from '@/components/ui/calendar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { BrainCircuit, BookOpen, Presentation, Zap, Calendar as CalendarIcon, Loader2, Sparkles } from 'lucide-react'
+import { BrainCircuit, BookOpen, Presentation, Zap, Calendar as CalendarIcon, Loader2, Sparkles, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_BASE_URL } from '@/lib/api'
 
@@ -25,14 +26,32 @@ interface StudyPlan {
 }
 
 export function StudyCalendar() {
+  const navigate = useNavigate()
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [plans, setPlans] = useState<StudyPlan[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
 
+  const handleTaskClick = (task: StudyTask) => {
+    switch (task.type) {
+      case 'review':
+        navigate('/flashcards/review')
+        break
+      case 'new_concept':
+      case 'reading':
+        navigate('/skill-tree')
+        break
+      case 'quiz':
+        navigate('/courses')
+        break
+      default:
+        navigate('/dashboard')
+    }
+  }
+
   const fetchPlans = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = sessionStorage.getItem('auth_token')
       const res = await fetch(`${API_BASE_URL}/api/plan/schedule`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -55,7 +74,7 @@ export function StudyCalendar() {
   const handleGenerate = async () => {
     setGenerating(true)
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = sessionStorage.getItem('auth_token')
       const res = await fetch(`${API_BASE_URL}/api/plan/generate`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -86,7 +105,7 @@ export function StudyCalendar() {
     }))
 
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = sessionStorage.getItem('auth_token')
       await fetch(`${API_BASE_URL}/api/plan/task/${planId}/${taskId}`, {
         method: 'PUT',
         headers: {
@@ -105,8 +124,11 @@ export function StudyCalendar() {
   const selectedDateStr = date ? date.toISOString().split('T')[0] : ''
   const selectedPlan = plans.find(p => p.date.startsWith(selectedDateStr))
 
-  // Find dates that have tasks for the calendar dots/highlights
-  const datesWithTasks = plans.filter(p => p.tasks.length > 0).map(p => new Date(p.date))
+  const incompleteTasks = selectedPlan ? selectedPlan.tasks.filter(t => !t.completed) : []
+  const hasCompletedTasks = selectedPlan ? selectedPlan.tasks.some(t => t.completed) : false
+
+  // Find dates that have incomplete tasks for the calendar highlights
+  const datesWithTasks = plans.filter(p => p.tasks.some(t => !t.completed)).map(p => new Date(p.date))
 
   const getTaskIcon = (type: string) => {
     switch (type) {
@@ -173,7 +195,11 @@ export function StudyCalendar() {
               </CardTitle>
               <CardDescription>
                 {selectedPlan 
-                  ? `You have ${selectedPlan.tasks.length} tasks scheduled for today. Estimated time: ${selectedPlan.tasks.reduce((a, b) => a + b.durationMinutes, 0)} mins.` 
+                  ? incompleteTasks.length > 0 
+                    ? `You have ${incompleteTasks.length} study tasks remaining for today. Estimated time: ${incompleteTasks.reduce((a, b) => a + b.durationMinutes, 0)} mins.`
+                    : selectedPlan.tasks.length > 0 
+                      ? 'All study tasks for today are completed!'
+                      : 'No tasks scheduled for this day.' 
                   : 'No tasks scheduled for this day.'}
               </CardDescription>
             </CardHeader>
@@ -183,23 +209,27 @@ export function StudyCalendar() {
                 <div className="flex items-center justify-center h-40">
                   <Loader2 className="size-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : selectedPlan && selectedPlan.tasks.length > 0 ? (
+              ) : selectedPlan && incompleteTasks.length > 0 ? (
                 <div className="space-y-4">
-                  {selectedPlan.tasks.map(task => (
+                  {incompleteTasks.map(task => (
                     <div 
                       key={task._id} 
-                      className={`flex items-start gap-4 p-4 rounded-xl border transition-all ${task.completed ? 'bg-muted/30 border-muted opacity-70' : 'bg-card hover:border-primary/50 shadow-sm'}`}
+                      onClick={() => handleTaskClick(task)}
+                      className="flex items-start gap-4 p-4 rounded-xl border transition-all bg-card hover:border-primary/50 shadow-sm hover:shadow-md cursor-pointer group"
                     >
-                      <Checkbox 
-                        id={task._id} 
-                        checked={task.completed} 
-                        onCheckedChange={() => handleToggleTask(selectedPlan._id, task._id, task.completed)}
-                        className="mt-1"
-                      />
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Checkbox 
+                          id={task._id} 
+                          checked={task.completed} 
+                          onCheckedChange={() => handleToggleTask(selectedPlan._id, task._id, task.completed)}
+                          className="mt-1"
+                        />
+                      </div>
                       <div className="flex-1 space-y-1">
                         <label 
                           htmlFor={task._id} 
-                          className={`font-medium text-sm cursor-pointer ${task.completed ? 'line-through text-muted-foreground' : ''}`}
+                          className="font-medium text-sm cursor-pointer text-foreground group-hover:text-primary transition-colors"
+                          onClick={(e) => e.preventDefault()} // prevent label trigger twice
                         >
                           {task.title}
                         </label>
@@ -220,6 +250,16 @@ export function StudyCalendar() {
                       </div>
                     </div>
                   ))}
+                </div>
+              ) : selectedPlan && hasCompletedTasks ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center space-y-3">
+                  <div className="p-4 bg-emerald-500/10 rounded-full text-emerald-500 animate-bounce">
+                    <CheckCircle2 className="size-8" />
+                  </div>
+                  <h3 className="font-semibold text-lg text-emerald-500">All tasks completed!</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Awesome job! You've checked off all your scheduled study tasks for today.
+                  </p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-64 text-center space-y-3">

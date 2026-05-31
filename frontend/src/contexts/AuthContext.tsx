@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check for existing session on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('auth_token')
+    const storedToken = sessionStorage.getItem('auth_token')
     
     const verifyAndSetLoading = async () => {
       if (storedToken) {
@@ -116,11 +116,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           } else {
             // Token invalid, clear storage
-            localStorage.removeItem('auth_token')
+            sessionStorage.removeItem('auth_token')
           }
         } catch (err) {
           console.error('Token verification failed:', err)
-          localStorage.removeItem('auth_token')
+          sessionStorage.removeItem('auth_token')
         }
       }
       
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Store token in localStorage
-        localStorage.setItem('auth_token', data.token)
+        sessionStorage.setItem('auth_token', data.token)
 
         setSession(sessionData)
         setUser(userData)
@@ -209,7 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Store token in localStorage
-        localStorage.setItem('auth_token', data.token)
+        sessionStorage.setItem('auth_token', data.token)
 
         setSession(sessionData)
         setUser(userData)
@@ -231,7 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signOut() {
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = sessionStorage.getItem('auth_token')
       if (token) {
         await fetch(`${API_BASE_URL}/api/auth/logout`, {
           method: 'POST',
@@ -246,14 +246,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Clear local state regardless of API response
-    localStorage.removeItem('auth_token')
+    sessionStorage.removeItem('auth_token')
     setSession(null)
     setUser(null)
     setProfile(null)
   }
 
   async function refreshProfile() {
-    const token = localStorage.getItem('auth_token')
+    const token = sessionStorage.getItem('auth_token')
     if (token) {
       await fetchProfile(token)
     }

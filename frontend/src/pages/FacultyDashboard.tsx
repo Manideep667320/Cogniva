@@ -200,7 +200,7 @@ export function FacultyDashboard() {
                 formData.append('lecture', file);
                 
                 try {
-                  const token = localStorage.getItem('auth_token');
+                  const token = sessionStorage.getItem('auth_token');
                   const res = await fetch(`${API_BASE_URL}/api/lecture/upload`, {
                     method: 'POST',
                     headers: {
@@ -274,7 +274,7 @@ export function FacultyDashboard() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                      className="text-muted-foreground hover:text-destructive transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                       onClick={() => handleDeleteCourse(course._id || course.id)}
                     >
                       <Trash2 className="size-4" />

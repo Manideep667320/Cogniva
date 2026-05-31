@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, Send, Users, ArrowLeft, ChevronLeft, ChevronRight, FileUp, FolderOpen, FileText, Layers, Sparkles, ChevronDown, CheckCircle2, XCircle, ArrowRight, X, MoreVertical } from 'lucide-react'
+import { Loader2, Send, Users, ArrowLeft, ChevronLeft, ChevronRight, FileUp, FolderOpen, FileText, Layers, Sparkles, ChevronDown, CheckCircle2, XCircle, ArrowRight, X, MoreVertical, MessageSquare } from 'lucide-react'
 import { generateRoomFlashcards } from '@/lib/api'
 import { Tldraw } from '@tldraw/tldraw'
 import '@tldraw/tldraw/tldraw.css'
@@ -56,6 +56,25 @@ export function StudyRoomPage() {
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
   const [activeTab, setActiveTab] = useState<'pdf' | 'whiteboard'>('pdf')
+  const [showLeftSidebar, setShowLeftSidebar] = useState(false)
+  const [showChatSidebar, setShowChatSidebar] = useState(false)
+
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      if (entries[0]) {
+        // Subtract some padding/margins
+        setContainerWidth(entries[0].contentRect.width - 24)
+      }
+    })
+
+    resizeObserver.observe(containerRef.current)
+    return () => resizeObserver.disconnect()
+  }, [activeTab])
 
   const isOwner = profile?.id && room?.creator_id?._id && profile.id === room.creator_id._id
 
@@ -218,26 +237,73 @@ export function StudyRoomPage() {
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       {/* Header */}
       <header className="flex h-14 items-center justify-between border-b px-4 shrink-0 bg-card">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
             <ArrowLeft className="size-4" />
           </Button>
-          <div>
-            <h1 className="font-semibold">{room?.name}</h1>
-            <p className="text-xs text-muted-foreground">Room Code: <span className="font-mono text-primary font-bold">{room?.room_code}</span></p>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden" 
+            onClick={() => {
+              setShowLeftSidebar(true)
+              setShowChatSidebar(false)
+            }}
+          >
+            <FolderOpen className="size-5" />
+          </Button>
+          <div className="min-w-0">
+            <h1 className="font-semibold truncate max-w-[120px] sm:max-w-none">{room?.name}</h1>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Room Code: <span className="font-mono text-primary font-bold">{room?.room_code}</span></p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2 hidden sm:flex">
             <Users className="size-4" /> Invite
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden text-primary" 
+            onClick={() => {
+              setShowChatSidebar(true)
+              setShowLeftSidebar(false)
+            }}
+          >
+            <MessageSquare className="size-5" />
           </Button>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Backdrops for mobile view */}
+        {showLeftSidebar && (
+          <div 
+            className="fixed inset-0 z-40 bg-black/50 md:hidden" 
+            onClick={() => setShowLeftSidebar(false)}
+          />
+        )}
+        {showChatSidebar && (
+          <div 
+            className="fixed inset-0 z-40 bg-black/50 md:hidden" 
+            onClick={() => setShowChatSidebar(false)}
+          />
+        )}
+
         {/* Left Sidebar: Members & Resources */}
-        <div className="w-64 flex flex-col bg-card shrink-0 border-r p-4 overflow-y-auto">
+        <div className={`
+          fixed inset-y-0 left-0 z-50 w-64 bg-card border-r p-4 overflow-y-auto flex flex-col transition-transform duration-300 ease-in-out shrink-0
+          ${showLeftSidebar ? 'translate-x-0' : '-translate-x-full'}
+          md:relative md:translate-x-0 md:flex md:h-auto md:z-0
+        `}>
+          {/* Mobile Close Button */}
+          <div className="flex justify-between items-center md:hidden mb-4 shrink-0">
+            <span className="font-semibold text-sm">Room Menu</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowLeftSidebar(false)}>
+              <X className="size-4" />
+            </Button>
+          </div>
           {/* Active Members */}
           <div className="mb-8">
             <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-4">Active Members</h3>
@@ -428,7 +494,7 @@ export function StudyRoomPage() {
         </div>
 
         {/* PDF Viewer (Center/Main) */}
-        <div className="flex-1 flex flex-col bg-muted/10 relative overflow-hidden">
+        <div ref={containerRef} className="flex-1 flex flex-col bg-muted/10 relative overflow-hidden">
           {/* Main Area Tabs */}
           <div className="flex items-center justify-center border-b bg-card shrink-0 p-2 gap-4">
             <Button 
@@ -485,7 +551,8 @@ export function StudyRoomPage() {
                     pageNumber={pageNumber} 
                     renderTextLayer={true} 
                     renderAnnotationLayer={true}
-                    className="shadow-xl"
+                    className="max-w-full shadow-xl animate-in fade-in zoom-in-95 duration-200"
+                    width={containerWidth}
                   />
                 </Document>
               </div>
@@ -523,10 +590,19 @@ export function StudyRoomPage() {
         </div>
 
         {/* Chat Sidebar (Right) */}
-        <div className="w-80 flex flex-col bg-card shrink-0">
-          <div className="p-3 border-b bg-muted/20 shrink-0">
-            <h2 className="font-semibold text-sm">Room Chat</h2>
-            <p className="text-xs text-muted-foreground">Tag <span className="text-primary font-medium">@tutor</span> to ask AI</p>
+        <div className={`
+          fixed inset-y-0 right-0 z-50 w-80 bg-card border-l overflow-hidden flex flex-col transition-transform duration-300 ease-in-out shrink-0
+          ${showChatSidebar ? 'translate-x-0' : 'translate-x-full'}
+          md:relative md:translate-x-0 md:flex md:h-auto md:z-0
+        `}>
+          <div className="p-3 border-b flex justify-between items-center bg-muted/20 shrink-0">
+            <div>
+              <h2 className="font-semibold text-sm">Room Chat</h2>
+              <p className="text-xs text-muted-foreground">Tag <span className="text-primary font-medium">@tutor</span> to ask AI</p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 md:hidden" onClick={() => setShowChatSidebar(false)}>
+              <X className="size-4" />
+            </Button>
           </div>
           
           <ScrollArea className="flex-1 p-4">

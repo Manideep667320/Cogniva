@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { GitBranch, Upload, ArrowLeft, Loader2, RefreshCw, Trash2 } from 'lucide-react'
+import { GitBranch, Upload, ArrowLeft, Loader2, RefreshCw, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -48,6 +48,7 @@ export function SkillTreePage() {
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [showSidebar, setShowSidebar] = useState(false)
 
   const loadTrees = useCallback(async () => {
     try {
@@ -74,6 +75,7 @@ export function SkillTreePage() {
   async function handleSelectTree(treeId: string) {
     setLoading(true)
     setSelectedSkill(null)
+    setShowSidebar(false)
     try {
       const tree = await getSkillTree(treeId)
       setSelectedTree(tree)
@@ -131,6 +133,15 @@ export function SkillTreePage() {
       description="Visual learning paths generated from your notes"
       headerRight={
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="md:hidden gap-1.5"
+            onClick={() => setShowSidebar(true)}
+          >
+            <GitBranch className="size-4" />
+            Trees
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowUpload(!showUpload)}>
             <Upload className="size-4 mr-1.5" />
             Upload Notes
@@ -143,9 +154,29 @@ export function SkillTreePage() {
         </div>
       }
     >
-      <div className="flex gap-4 h-[calc(100vh-8rem)]">
+      <div className="flex gap-4 h-[calc(100vh-8rem)] relative">
+        {/* Mobile backdrop for sidebar */}
+        {showSidebar && (
+          <div 
+            className="fixed inset-0 z-40 bg-black/50 md:hidden" 
+            onClick={() => setShowSidebar(false)}
+          />
+        )}
+
         {/* Left sidebar: tree list + upload */}
-        <div className="w-64 shrink-0 flex flex-col gap-3 overflow-hidden h-full">
+        <div className={`
+          fixed inset-y-0 left-0 z-50 w-64 bg-card border-r p-4 flex flex-col gap-3 transition-transform duration-300 ease-in-out shrink-0 h-full
+          ${showSidebar ? 'translate-x-0' : '-translate-x-full'}
+          md:relative md:translate-x-0 md:flex md:p-0 md:border-0 md:h-auto md:z-0
+        `}>
+          {/* Mobile close button */}
+          <div className="flex justify-between items-center md:hidden mb-2 shrink-0">
+            <span className="font-semibold text-sm">Skill Trees</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowSidebar(false)}>
+              <X className="size-4" />
+            </Button>
+          </div>
+
           {showUpload && (
             <Card className="p-3 border-border/60">
               <UploadPanel
@@ -237,7 +268,7 @@ export function SkillTreePage() {
                         </Badge>
                         <button
                           onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(tree._id) }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
+                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
                           title="Delete skill tree"
                         >
                           <Trash2 className="size-3.5" />
@@ -286,14 +317,25 @@ export function SkillTreePage() {
 
         {/* Right panel: learning panel */}
         {selectedSkill && selectedTree && (
-          <div className="w-96 shrink-0 rounded-xl border border-border/60 shadow-sm overflow-hidden h-full">
-            <LearningPanel
-              skill={selectedSkill}
-              skillTreeId={selectedTree._id}
-              onClose={() => setSelectedSkill(null)}
-              onMasteryUpdate={handleMasteryUpdate}
+          <>
+            {/* Mobile backdrop for learning panel */}
+            <div 
+              className="fixed inset-0 z-40 bg-black/50 md:hidden" 
+              onClick={() => setSelectedSkill(null)}
             />
-          </div>
+            <div className={`
+              fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-card border-l shadow-xl flex flex-col transition-transform duration-300 ease-in-out shrink-0
+              ${selectedSkill ? 'translate-x-0' : 'translate-x-full'}
+              md:relative md:translate-x-0 md:flex md:h-auto md:z-0 md:w-96 md:shadow-none md:rounded-xl md:border
+            `}>
+              <LearningPanel
+                skill={selectedSkill}
+                skillTreeId={selectedTree._id}
+                onClose={() => setSelectedSkill(null)}
+                onMasteryUpdate={handleMasteryUpdate}
+              />
+            </div>
+          </>
         )}
       </div>
     </AppLayout>

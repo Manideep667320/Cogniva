@@ -98,7 +98,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       const formData = new FormData()
       formData.append('audio', blob, 'command.webm')
 
-      const token = localStorage.getItem('auth_token')
+      const token = sessionStorage.getItem('auth_token')
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
       const res = await fetch(`${API_BASE_URL}/api/voice/command`, {
         method: 'POST',

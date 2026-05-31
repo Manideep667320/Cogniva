@@ -532,7 +532,7 @@ export function CoursesPage() {
                           variant="ghost" 
                           size="icon" 
                           onClick={() => removeVideoField(idx)}
-                          className="absolute -top-2 -right-2 size-6 rounded-full bg-background border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute -top-2 -right-2 size-6 rounded-full bg-background border shadow-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                         >
                           <X className="size-3 text-destructive" />
                         </Button>

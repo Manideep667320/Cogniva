@@ -1,7 +1,7 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cogniva-wu5f.onrender.com'
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function getAuthToken(): string | null {
-  return localStorage.getItem('auth_token')
+  return sessionStorage.getItem('auth_token')
 }
 
 function getHeaders() {

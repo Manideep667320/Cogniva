@@ -36,7 +36,7 @@ export function StudentAnalytics() {
   useEffect(() => {
     async function fetchAnalytics() {
       try {
-        const token = localStorage.getItem('auth_token')
+        const token = sessionStorage.getItem('auth_token')
         const res = await fetch(`${API_BASE_URL}/api/analytics/student`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })

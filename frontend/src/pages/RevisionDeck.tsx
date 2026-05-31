@@ -31,7 +31,7 @@ export function RevisionDeck() {
 
   const fetchQueue = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = sessionStorage.getItem('auth_token')
       const res = await fetch(`${API_BASE_URL}/api/flashcards/queue`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -61,7 +61,7 @@ export function RevisionDeck() {
     setStartTime(Date.now())
 
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = sessionStorage.getItem('auth_token')
       await fetch(`${API_BASE_URL}/api/flashcards/review`, {
         method: 'POST',
         headers: {
@@ -132,20 +132,20 @@ export function RevisionDeck() {
           </CardContent>
 
           {showAnswer && (
-            <div className="grid grid-cols-4 gap-2 p-4 bg-muted/30 border-t">
-              <Button variant="outline" className="border-red-500/50 hover:bg-red-500/10 hover:text-red-600 flex flex-col h-16" onClick={() => handleRating(1)}>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-4 bg-muted/30 border-t">
+              <Button variant="outline" className="border-red-500/50 hover:bg-red-500/10 hover:text-red-600 flex flex-col h-16 w-full" onClick={() => handleRating(1)}>
                 <span className="font-bold">Again</span>
                 <span className="text-xs text-muted-foreground font-normal">&lt; 1 min</span>
               </Button>
-              <Button variant="outline" className="border-orange-500/50 hover:bg-orange-500/10 hover:text-orange-600 flex flex-col h-16" onClick={() => handleRating(2)}>
+              <Button variant="outline" className="border-orange-500/50 hover:bg-orange-500/10 hover:text-orange-600 flex flex-col h-16 w-full" onClick={() => handleRating(2)}>
                 <span className="font-bold">Hard</span>
                 <span className="text-xs text-muted-foreground font-normal">Slow/Unsure</span>
               </Button>
-              <Button variant="outline" className="border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-600 flex flex-col h-16" onClick={() => handleRating(3)}>
+              <Button variant="outline" className="border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-600 flex flex-col h-16 w-full" onClick={() => handleRating(3)}>
                 <span className="font-bold">Good</span>
                 <span className="text-xs text-muted-foreground font-normal">Normal</span>
               </Button>
-              <Button variant="outline" className="border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-600 flex flex-col h-16" onClick={() => handleRating(4)}>
+              <Button variant="outline" className="border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-600 flex flex-col h-16 w-full" onClick={() => handleRating(4)}>
                 <span className="font-bold">Easy</span>
                 <span className="text-xs text-muted-foreground font-normal">Instant</span>
               </Button>
