@@ -131,34 +131,34 @@ export function MasteryTrendChart() {
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 300, height: 200 }}>
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
                 <XAxis
                   dataKey="name"
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                   tickLine={false}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  axisLine={{ stroke: 'var(--border)' }}
                 />
                 <YAxis
                   domain={[0, 100]}
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                   tickLine={false}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  axisLine={{ stroke: 'var(--border)' }}
                   label={{
                     value: 'Mastery %',
                     angle: -90,
                     position: 'insideLeft',
-                    style: { fontSize: 10, fill: 'hsl(var(--muted-foreground))' },
+                    style: { fontSize: 10, fill: 'var(--muted-foreground)' },
                   }}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
+                    backgroundColor: 'var(--card)',
+                    border: '1px solid var(--border)',
                     borderRadius: '8px',
                     fontSize: 12,
-                    color: 'hsl(var(--foreground))'
+                    color: 'var(--foreground)'
                   }}
-                  itemStyle={{ color: 'hsl(var(--foreground))' }}
+                  itemStyle={{ color: 'var(--foreground)' }}
                   formatter={(value: any) => [`${value}%`, undefined as any]}
                 />
                 <Legend
